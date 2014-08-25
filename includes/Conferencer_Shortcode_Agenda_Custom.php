@@ -1,90 +1,4 @@
 <?php
-add_action('wp_ajax_get_joinleave_buttons_array', 'get_joinleave_buttons_array');           // for logged in user  
-add_action('wp_ajax_nopriv_get_joinleave_buttons_array', 'get_joinleave_buttons_array');
-
-function get_joinleave_buttons_array(){
-	$user_id = get_current_user_id();
-	if(!$user_id){
-		echo('false');
-		die();
-		return;
-	} 
-	$gids = explode(",",$_POST['gids']);
-	$buts = array();
-	foreach($gids as &$gid){
-		$buts[$gid] = bp_group_join_button_from_id($gid);
-	}
-	echo json_encode($buts);
-	die();
-}
-
-function bp_group_join_button_from_id($group_id){
-		global $bp;
-		$group = groups_get_group( array( 'group_id' => $group_id ) );
-		
-		if (empty($group))
-			return false;
-		if ( !is_user_logged_in() || bp_group_is_user_banned( $group ) )
-			return false;
-
-		// Group creation was not completed or status is unknown
-		if ( !$group->status )
-			return false;
-
-		// Already a member
-		if ( isset( $group->is_member ) && $group->is_member ) {
-
-			// Stop sole admins from abandoning their group
-	 		$group_admins = groups_get_group_admins( $group->id );
-		 	if ( 1 == count( $group_admins ) && $group_admins[0]->user_id == bp_loggedin_user_id() )
-				return false;
-
-			$button = array(
-				'id'                => 'leave_group',
-				'component'         => 'groups',
-				'must_be_logged_in' => true,
-				'block_self'        => false,
-				'wrapper_class'     => 'group-button prog ' . $group->status,
-				'wrapper_id'        => 'groupbutton-' . $group->id,
-				'link_href'         => wp_nonce_url( bp_get_group_permalink( $group ) . 'leave-group', 'groups_leave_group' ),
-				'link_text'         => '–',
-				'link_title'        => __( 'Leave Group', 'buddypress' ),
-				'link_class'        => 'group-button leave-group',
-			);
-
-		// Not a member
-		} else {
-
-			// Show different buttons based on group status
-			switch ( $group->status ) {
-				case 'hidden' :
-					return false;
-					break;
-
-				case 'public':
-					$button = array(
-						'id'                => 'join_group',
-						'component'         => 'groups',
-						'must_be_logged_in' => true,
-						'block_self'        => false,
-						'wrapper_class'     => 'group-button prog ' . $group->status,
-						'wrapper_id'        => 'groupbutton-' . $group->id,
-						'link_href'         => wp_nonce_url( bp_get_group_permalink( $group ) . 'join', 'groups_join_group' ),
-						'link_text'         => '+',
-						'link_title'        => __( 'Join Group', 'buddypress' ),
-						'link_class'        => 'group-button join-group',
-					);
-					break;
-
-				case 'private' :
-					return false;
-					break;
-
-			}
-		}
-	return (bp_get_button( apply_filters( 'bp_get_group_join_button', $button ) ));
-}
-
 new Conferencer_Shortcode_Agenda_Custom();
 class Conferencer_Shortcode_Agenda_Custom extends Conferencer_Shortcode {
 	var $shortcode = 'agendacustom';
@@ -274,34 +188,47 @@ class Conferencer_Shortcode_Agenda_Custom extends Conferencer_Shortcode {
 <?php 
 $column_posts = Conferencer::get_posts('track');
 $track_array = array();
+$out_types = array();
 //$out = "<!-- ";
 ?>
-<?php  echo '<script src="'.get_stylesheet_directory_uri().'/js/confprog.js"></script>'; ?>
+<?php  echo '<script src="'.plugins_url( 'js/confprog.js?v=33' , dirname(__FILE__) ).'"></script>'; ?>
 <div class="agenda-filter">
-<h2>Theme Filter (<a href="#" class="check">Uncheck All</a>)</h2>
+<h2>Filters</h2>
+<div id="theme-filters">
 <?php
 foreach ($column_posts as $column_post) {
 	$track_array[$column_post->ID] = $column_post->post_title;
-	//$out .= ".track-".$column_post->post_name."{\n\n}\n\n"; ?>
-	<div class="track track-<?php echo $column_post->post_name;?>" id="track-<?php echo $column_post->post_name;?>">
-    	<label><input id="track-<?php echo $column_post->post_name;?>" name="track-<?php echo $column_post->ID;?>" type="checkbox" checked/>
-    	<?php echo $column_post->post_title;?></label>
-    </div> 
-    <?php 
+	$track_type = get_post_meta($column_post->ID, 'track_filter', true);
+	if (isset($track_type)){
+		$out_types[$track_type] .= '<div class="track track-'.$column_post->post_name.'" id="track-'.$column_post->post_name.'">
+							<label><input id="track-'.$column_post->post_name.'" name="track-'.$column_post->ID.'" type="checkbox" checked/>' .
+							$column_post->post_title.'</label>
+						</div>';
+	}
+}
+foreach ($out_types as $track_name => $track_values) {
+	echo '<div id="track-'.$track_name.'"><h3>'.ucwords($track_name).'</h3>'.$track_values.'</div>';
 }
 
 //echo $out." -->";
 ?>
-<h2>Joined Sessions Filter</h2>
-<p><strong><a href="#" class="mysessions"><img src="<?php echo get_stylesheet_directory_uri();?>/icons/loading.gif" /></a></strong></p>
+<div>(<a href="#" class="check">Uncheck All</a>)</div>  
+</div>
+<h3>Your Sessions Filter</h3>
+<div class="mysessions"><img src="<?php echo plugins_url( 'images/icons/loading.gif' , dirname(__FILE__) )?>/" /></div>
 </div>
 			<?php if ($tabs) { ?>
 				<div class="conferencer_tabs">
 				<ul class="tabs">
+                <!-- <?php $tab_idx = 0;
+						   $tab_lkup = array();?> -->
 					<?php foreach ($tab_headers as $tab_header) { ?>
+                    		<?php $tab_idx ++; 
+								$tab_lkup[get_day($tab_header)] = "day".$tab_idx;?>
 						<li>
 							<?php if ($tabs == 'days') { ?>
-								<a href="#conferencer_agenda_tab_<?php echo $tab_header; ?>">
+                            	
+								<a href="#day<?php echo $tab_idx; ?>">
 									<?php echo $tab_header ? date($tab_day_format, $tab_header) : $unscheduled_row_text; ?>
 								</a>
 							<?php } ?>
@@ -338,8 +265,8 @@ foreach ($column_posts as $column_post) {
 										</table>
 										 <!-- #conferencer_agenda_tab_xxx --> </div>
 									<?php } else $second_table = true; ?>
-
-									<div id="conferencer_agenda_tab_<?php echo get_day($row_starts); ?>">
+<!-- <?php print_r($row_starts);?> -->
+									<div id="<?php echo $tab_lkup[get_day($row_starts)]; ?>">
 									<table class="grid">
 										<?php if ($column_type) $this->display_headers($column_headers); ?>
 										<tbody>
@@ -462,6 +389,7 @@ foreach ($column_posts as $column_post) {
 	<?php }
 	
 	function display_session($session) {
+		//print_r($session);
 		if (function_exists('conferencer_agenda_display_session')) {
 			conferencer_agenda_display_session($session, $this->options);
 			return;
@@ -470,11 +398,13 @@ foreach ($column_posts as $column_post) {
 		extract($this->options);
 		$group_id = get_post_meta($session->ID, 'con_group', true);
 		?>
-
-		<div class="session <?php if ($session->track) echo "track-".get_the_slug($session->track); ?>" group-id="<?php echo $group_id ;?>">
-        <div class="generic-button group-button prog public" id="groupbutton-<?php echo $group_id ;?>"></div>
+		<a name="sessionid<?php echo $group_id ;?>"></a>
+		<div class="session <?php if ($session->track) echo "track-".Conferencer_BP_Addon::get_the_slug($session->track); ?>" group-id="<?php echo $group_id ;?>">
+        <div class="generic-button group-button prog public" id="groupbutton-<?php echo $group_id ;?>" style="display:none">
+        <?php echo '<a id="group-' . esc_attr( $group_id ) . '" class="join-group" rel="join" title="' . __( 'Join Group', 'buddypress' ) . '" href="' . wp_nonce_url( trailingslashit( bp_get_root_domain() . '/' . bp_get_groups_root_slug() . '/' . groups_get_slug($group_id) . '/' ) . 'join', 'groups_join_group' ) . '">' . __( 'Join Group', 'buddypress' ) . '</a>';
+		?></div>
             <?php $islive = get_post_meta($session->ID, 'conc_wp_live', true);
-				if ($islive) echo '<div class="islive">LIVE</div>'; ?>
+				if ($islive) echo '<div class="islive">LIVE STREAMED</div>'; ?>
 			<?php echo do_shortcode("
 				[session_meta
 					post_id='$session->ID'
@@ -508,4 +438,3 @@ foreach ($column_posts as $column_post) {
 	<?php }
 	
 }
-?>

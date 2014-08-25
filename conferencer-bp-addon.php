@@ -69,11 +69,35 @@ class Conferencer_BP_Addon {
 		add_action ( 'parse_query', array( $this, 'ical_event') );
 		
 		add_shortcode( 'session-content', array( $this, 'session_content_func') );
-		add_filter( 'bp_get_group_description', 'do_shortcode' );
+		
 		
 		add_action('admin_enqueue_scripts', array( $this, 'my_admin_enqueue'));
 		add_action( 'init', array( $this, 'register_scripts_and_styles' ) );
 		add_action('wp_enqueue_scripts', array( $this, 'my_front_enqueue'));
+		
+		add_action( 'admin_init', array( $this, 'themeblvd_redirect_admin') );
+		
+		add_action('wp_ajax_get_joinleave_buttons_array', array( $this, 'get_joinleave_buttons_array') );           // for logged in user  
+		if (class_exists('rsBuddypressActivityRefresh')){ // add activy refresh for non-logged in users
+			add_action('wp_ajax_nopriv_rs_bp_activity_refresh', array('rsBuddypressActivityRefresh', 'ajaxRefresh'));
+		}
+		if (class_exists('BuddyPress')){
+			add_action( 'bp_init', array( $this, 'bp_select_links_in_profile'), 0 );
+			add_filter( 'bp_get_group_description', 'do_shortcode' );
+			add_action( 'xprofile_updated_profile', array( $this, 'update_extra_profile_fields'),10, 3 );
+			add_filter( 'user_contactmethods', array( $this, 'add_hide_profile_fields'),10,1);
+			add_action( 'wp_ajax_xprofile_detect_blog_rss', array( $this, 'xprofile_detect_blog_rss'),0,99);
+			add_action( 'bp_core_activated_user', array( $this, 'bpdev_add_user_to_registering_blog'));
+			//if (class_exists('MailPress')){
+				add_action( 'bp_notification_settings', array( $this, 'newsletter_subscription_notification_settings') );
+			//}
+		}
+		/*if (class_exists('MailPress') && class_exists('MailPress_sync_wordpress_user')){
+			add_action('bp_core_signup_user', array('MailPress_sync_wordpress_user', 'user_register'), 1, 1);
+			add_action( 'xprofile_updated_profile', array('MailPress_sync_wordpress_user', 'update'), 1, 1);
+			add_action( 'bp_core_delete_account ', array('MailPress_sync_wordpress_user', 'delete'), 1, 1);
+		}*/
+		//add_action('wp_ajax_nopriv_get_joinleave_buttons_array', array( $this, 'get_joinleave_buttons_array');
 
 		// add open badges logging
 		/*add_action( 'init', array( $this, 'open_badges_log_post_type' ) );
@@ -94,8 +118,10 @@ class Conferencer_BP_Addon {
 	} /* __construct() */
 
 	function bp_load_plugin_textdomain() {
-		load_textdomain( 'conferencer_bp_addon',  plugin_dir_path( __FILE__ ) . '/languages/conferencer-bp-addon.mo' );
-		load_textdomain( 'buddypress',  plugin_dir_path( __FILE__ ) . '/languages/buddypress-en_US.mo' );
+		load_textdomain( 'conferencer_bp_addon',  $this->directory_path . '/languages/conferencer-bp-addon.mo' );
+		load_textdomain( 'buddypress',  $this->directory_path . '/languages/buddypress-en_US.mo' );
+		load_textdomain( 'bp-ass',  $this->directory_path . '/languages/bp-ass-en_US.mo' );
+		load_textdomain('cc', $this->directory_path . '/languages/cc-en_US.mo');
 	}
 
 	/**
@@ -104,6 +130,9 @@ class Conferencer_BP_Addon {
 	 * @since 1.0.0
 	 */
 	public function includes() {
+		if ( $this->meets_requirements() ) {
+			require_once(sprintf("%s/includes/Conferencer_Shortcode_Agenda_Custom.php", $this->directory_path));
+		}
 
 		// If BadgeOS is available...
 		/*if ( $this->meets_requirements() ) {
@@ -121,8 +150,235 @@ class Conferencer_BP_Addon {
 		*/
 
 	} /* includes() */
+	
+	function newsletter_subscription_notification_settings() {
+		global $bp ;?>
+		<table class="notification-settings zebra" id="groups-notification-settings">
+		<thead>
+			<tr>
+				<th class="icon"></th>
+				<th class="title">Newsletter Subscription</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td></td>
+				<td><?php $this->get_mailpress_mlink(bp_core_get_user_email( $bp->loggedin_user->userdata->ID )); ?></td>
+			</tr>
+		</tbody>
+		</table>	
+	<?php
+	}
+	// http://wordpress.org/support/topic/some-very-useful-tips-for-mailpress
+	public function get_mailpress_mlink($user_email) {
+		echo 'To manage your newsletter subscription goto <a href="'.MP_User::get_unsubscribe_url(MP_User::get_key_by_email($user_email)).'">Manage Newsletter Subscriptions</a>';
+	}
 
+	
+	/**
+	 * Redirect back to homepage and not allow access to 
+	 * WP admin for Subscribers.
+	 */
+	function themeblvd_redirect_admin(){
+		if ( ! current_user_can( 'edit_posts' ) && is_admin() && $_SERVER['PHP_SELF'] != '/wp-admin/admin-ajax.php' ){
+			wp_redirect( bp_core_get_user_domain(bp_loggedin_user_id()) );
+			exit;		
+		}
+	}
+	
+	//http://buddydev.com/buddypress/adding-users-to-the-blog-on-which-they-register-in-a-buddypress-wordpress-multisite-based-social-network/ 
+	function bpdev_add_user_to_registering_blog( $user_id ) {
+		$blog_id = get_current_blog_id();
+		if( !is_user_member_of_blog($user_id, $blog_id ) )
+		add_user_to_blog( $blog_id, $user_id, get_option('default_role') );
+	}
+	
+	// Handle what's linked in user profile https://gist.github.com/modemlooper/4574785
+	function bp_select_links_in_profile() {
+	  add_filter( 'bp_get_the_profile_field_value', array($this, 'bp_links_in_profile'), 10, 3 );
+	}
+	
+	
+	
+	// function to handle links in user profile (removing hyperlink search to bio 
+	function bp_links_in_profile( $val, $type, $key ) {
+		$field = new BP_XProfile_Field( $key );
+		$field_name = $field->name;
+		if(  strtolower( $field_name ) == 'bio' ) {
+			$val = strip_tags( $val );
+		}
+		return $val;
+	}
+	
+	// remove and add some wp_usermeta 
+	function add_hide_profile_fields( $contactmethods ) {
+		unset($contactmethods['aim']);
+		unset($contactmethods['jabber']);
+		unset($contactmethods['yim']);
+		$contactmethods['fwp_twitter'] = 'Twitter';
+		$contactmethods['fwp_delicious'] = 'Delicious ID';
+		$contactmethods['fwp_diigo'] = 'Diigo ID';
+		$contactmethods['fwp_slideshare'] = 'Slideshare ID';
+		$contactmethods['blog'] = 'Blog';
+		$contactmethods['blogrss'] = 'Blog RSS Feed';
+	return $contactmethods;
+	}
+	
+	
+	// handling registration of a blog feed with feedwordpress and listed status
+	function update_extra_profile_fields($user_id, $posted_field_ids, $errors) {
+		// There are errors
+		if ( empty( $errors ) ) {
+			// Reset the errors var
+			$errors = false;
+			// Now we've checked for required fields, lets save the values and sync some data to WP_User for FeedWordPress.
+			foreach ( (array) $posted_field_ids as $field_id ) {
+				$field = new BP_XProfile_Field($field_id);
+				switch ($field->name) {
+					case('Blog'):
+						$blogurl = $_POST['field_'.$field_id];
+						update_user_meta($user_id, 'blog', $blogurl);
+						break;
+					case('Blog RSS'):
+						$blogrss = $_POST['field_'.$field_id];
+						update_user_meta($user_id, 'blogrss', $blogrss);
+						break;
+					case('Searchable on members list'):
+						$onlist = $_POST['field_'.$field_id];
+						break;
+					case('Twitter'):
+						update_user_meta($user_id, 'fwp_twitter', $_POST['field_'.$field_id]);
+						break;
+					case('Delicious ID'):
+						update_user_meta($user_id, 'fwp_delicious', $_POST['field_'.$field_id]);
+						break;
+					case('Diigo ID'):
+						update_user_meta($user_id, 'fwp_diigo', $_POST['field_'.$field_id]);
+						break;
+					case('Slideshare ID'):
+						update_user_meta($user_id, 'fwp_slideshare', $_POST['field_'.$field_id]);
+						break;
+				}
+			}
+		}
+		/*if (!$onlist && subscriber_type($user_id) == "subscriber"){
+			// http://wordpress.stackexchange.com/a/4727
+			$u = new WP_User( $user_id );
+			// Remove role
+			$u->remove_role( "subscriber" );
+			// Add role
+			$u->add_role( 'subscriber-unlisted' );
+		} elseif ($onlist && subscriber_type($user_id) == "subscriber-unlisted"){
+			$u = new WP_User( $user_id );
+			$u->remove_role( "subscriber-unlisted" );
+			$u->add_role( 'subscriber' );
+		}
+		*/
+		$linkid = get_user_meta($user_id, 'fwp_link_id_'.get_current_blog_id(), true);
+		if ($blogrss != "" && $blogurl == "") $blogurl = $blogrss;
+		if ($blogrss != "" && $blogurl != ""){ 
+			$newid = Conferencer_BP_Addon::make_fwp_link($user_id, $blogurl, $blogrss, $linkid);
+			update_user_meta($user_id, 'fwp_link_id_'.get_current_blog_id(), $newid);
+		}
+	}
+	
+	// add to wp_link (used by FWP for list of syndicated sites
+	public function make_fwp_link($user_id, $blogurl, $blogrss, $linkid = false) {
+		// a lot of this was inspired by http://wrapping.marthaburtis.net/2012/08/22/perfecting-the-syndicated-blog-sign-up/
+		remove_filter('pre_link_rss', 'wp_filter_kses');
+		remove_filter('pre_link_url', 'wp_filter_kses');
+		// Get contributors category 
+		$mylinks_categories = get_terms('link_category', 'name__like=Contributors');
+		$contrib_cat = intval($mylinks_categories[0]->term_id);
+		
+		$link_notes = 'map authors: name\n*\n'.$user_id;
+		$new_link = array(
+				'link_name' => $blogurl,
+				'link_url' => $blogurl,
+				'link_category' => $contrib_cat,
+				'link_rss' => $blogrss
+				);
+		if( !function_exists( 'wp_insert_link' ) ) {
+			include_once( ABSPATH . '/wp-admin/includes/bookmark.php' );	
+		}
+		if (!($linkid)) { // if no link insert new link
+			$linkid = wp_insert_link($new_link);
+			// update new link with notes
+		} else {
+			//update existing link
+			$new_link['link_id'] = $linkid;
+			$linkid = wp_insert_link($new_link);
+		}
+		// update notes in db as wp_insert_link escapes serialisation
+		global $wpdb;
+		$esc_link_notes = $wpdb->escape($link_notes);
+		$result = $wpdb->query("
+			UPDATE $wpdb->links
+			SET link_notes = \"".$esc_link_notes."\" 
+			WHERE link_id='$linkid'
+		");
+		return $linkid;
+	}
+	
+	
+	// function to detect blog rss feed from url
+	public function xprofile_detect_blog_rss() {
+		$url = trim($_POST['blog']);
+		// if not valid url try adding http
+		if (!filter_var($url, FILTER_VALIDATE_URL, FILTER_FLAG_HOST_REQUIRED)){
+			$url = "http://".$url;
+		}
+		$id = $_POST['id'];
+		$output = '<select name="'.$id.'" id="'.$id.'">';
+		// stolen from Alan Levine (@cogdog)
+		if($html = @DOMDocument::loadHTML(file_get_contents($url))) {
+	  
+			$xpath = new DOMXPath($html);
+			$options = false;
+			 
+			// find RSS 2.0 feeds
+			$feeds = $xpath->query("//head/link[@href][@type='application/rss+xml']/@href");
+			foreach($feeds as $feed) {
+				//$results[] = $feed->nodeValue;
+				$urlStr = $feed->nodeValue;
+				$parsed = parse_url($urlStr);
+				if (empty($parsed['scheme'])) $urlStr = untrailingslashit($url).$urlStr;
+				$options .= '<option value="'.$urlStr.'">'.$urlStr.'</option>';
+			}
+	  
+			 // find Atom feeds
+			$feeds = $xpath->query("//head/link[@href][@type='application/atom+xml']/@href");
+			foreach($feeds as $feed) {
+				//$results[] = $feed->nodeValue;
+				$urlStr = $feed->nodeValue;
+				$parsed = parse_url($urlStr);
+				if (empty($parsed['scheme'])) $urlStr = untrailingslashit($url).$urlStr;
+				$options .= '<option value="'.$urlStr.'">'.$urlStr.'</option>';
+			}
+			
+		}
+		
+		$options .= '<option value="Other">Other</option>';
+		$output .= $options.'</select>';
+		$output .= '<input id="other_feed" name="other_feed" type="text" placeholder="Enter other feed" />';
+		
+		echo $output;
+		exit();
+	}
+	
+	/*// adding custom jQuery to profile edit page
+	function conc_wp_profile_edit() {
+		wp_enqueue_script(
+			'profile-edit',
+			get_stylesheet_directory_uri() . '/js/profile.js',
+			array( 'jquery' )
+		);  
+	}
+	add_filter( 'bp_before_profile_edit_content', 'conc_wp_profile_edit');*/
 
+	public function get_plugin_url(){
+		return 	plugin_basename( __FILE__ );
+	}
 
 	/**
 	 * Include our session shortcode
@@ -140,15 +396,19 @@ class Conferencer_BP_Addon {
 		} else {
 			$content = '<div class="content">'.wpautop($post_content).'</div>';
 		}
-		$prefix = do_shortcode('[session_meta post_id='.$id.']');
+		$session_meta = do_shortcode('[session_meta post_id='.$id.']');
 		$rec = "";
-		$islive = get_post_meta($id, 'conc_wp_live', true);
-		if ($islive && strlen($islive) > 2) $rec = '<a href="'.$islive.'" class="islive">RECORDING</a>';
-		
+		$youtube_id = get_post_meta($id, 'conc_wp_live', true);
+		if ($youtube_id && strlen($youtube_id) > 2) {
+			$instruc = __("Please register/login and follow this session to comment on this video", 'conferencer_bp_addon') ;
+			//$rec = '<a href="'.$islive.'" class="islive">RECORDING</a>';
+			$youtube = sprintf('<div class="youtube"><iframe width="640" height="340" src="//www.youtube.com/embed/%s?enablejsapi=1" frameborder="0" allowfullscreen="allowfullscreen"></iframe></div><div class="youtube_info">%s</div>', $youtube_id, $instruc ) ;
+		}	
 		if (!is_admin()){
-			$content = $prefix.$content.'<div>'.$rec.$this->google_calendar_link($id).$this->ics_calendar_link($id).'</div>';
+			$content = '<div style="float:right;">'.$this->google_calendar_link($id).$this->ics_calendar_link($id).'</div>'
+					   .$session_meta.'<div style="clear:both">'.$content.$youtube.'</div>';
 		} else {
-			$content = $prefix;
+			$content = $session_meta;
 		}
 		
 		// return apply_filters( 'session-content-shortcodes-content', apply_filters( 'the_content', $content ), $p );
@@ -312,6 +572,8 @@ class Conferencer_BP_Addon {
 	// patch for conferencer to load jQuery 1.7.2 in reordering page (.curCSS depreciated in jQuery 1.8)
 	// http://wordpress.stackexchange.com/a/7282
 	function my_admin_enqueue($hook_suffix) {
+		wp_dequeue_script( 'jquery-timeago-js');
+		wp_dequeue_script( 'rs-bp-activity-refresh-ajax-js');
 		if($hook_suffix == 'conferencer_page_conferencer_reordering') {
 			// http://wordpress.org/support/topic/error-has-no-method-curcss#post-3964638
 			wp_deregister_script('jquery');
@@ -326,11 +588,19 @@ class Conferencer_BP_Addon {
 	}
 	
 	function my_front_enqueue() {
-		wp_enqueue_script('conferencer-addon');
+		wp_dequeue_script( 'conferencer' );
+		wp_dequeue_script( 'jquery-timeago-js');
+		wp_dequeue_script( 'rs-bp-activity-refresh-ajax-js' );
+		wp_enqueue_script( 'jquery-address' );
+		wp_enqueue_script( 'conferencer-addon' );
+		wp_enqueue_style( 'conferencer-addon-style' );
 	}
 	
 	function register_scripts_and_styles() {
-		wp_register_script( 'conferencer-addon', $this->directory_url . '/js/conferencer-addon.js', array( 'jquery' ), '1.0.4');
+		wp_enqueue_script( 'con-jquery-timeago-js', $this->directory_url . '/js/jquery.timeago.js', array( 'jquery' ) );
+		wp_register_script( 'jquery-address', $this->directory_url . '/js/jquery.address-1.5.min.js', array( 'jquery' ));
+		wp_register_script( 'conferencer-addon', $this->directory_url . '/js/conferencer-addon.js', array( 'jquery' ), '1.0.52');
+		wp_register_style( 'conferencer-addon-style', $this->directory_url . '/css/style.css', NULL, '1.0.48' );
 	}
 
 	function add_query_vars($aVars) {
@@ -338,28 +608,102 @@ class Conferencer_BP_Addon {
 		$aVars[] = 'sessionid'; 
 		return $aVars;
 	}
-
-	/**
-	* Register controllers for custom JSON_API end points.
-	*
-	* @since 1.0.0
-	* @param object $controllers JSON_API.
-	* @return object $controllers.
-	*/
-	public function add_badge_controller($controllers) {
-	  $controllers[] = 'badge';
-	  return $controllers;
+	
+	function get_joinleave_buttons_array(){
+		$user_id = get_current_user_id();
+		if(!$user_id){
+			echo('false');
+			die();
+			return;
+		} 
+		
+		$gids = explode(",",$_POST['gids']);
+		$buts = array();
+		/*$user_groups = groups_get_groups(array('user_id' => $user_id,
+											   'populate_extras' => false,
+											   'per_page' => -1));
+		echo json_encode($user_groups );
+		die();*/		
+		groups_is_user_member( $user_id, $group_id );							   
+		foreach($gids as $group_id){
+			$group = groups_get_group( array( 'group_id' => $gid ) );
+			if (groups_is_user_member( $user_id, $group_id )){
+				$buts[$group_id] = '<a id="group-' . esc_attr( $group_id ) . '" class="leave-group" rel="leave" title="' . __( 'Leave Group', 'buddypress' ) . '" href="' . wp_nonce_url( trailingslashit( bp_get_root_domain() . '/' . bp_get_groups_root_slug() . '/' . groups_get_slug($group_id) . '/' ) . 'leave-group', 'groups_leave_group' ) . '">' . __( 'Leave Group', 'buddypress' ) . '</a>';
+			}
+		}
+		echo json_encode($buts);
+		die();
 	}
 	
-	/**
-	* Register controllers define path custom JSON_API end points.
-	*
-	* @since 1.0.0
-	*/
-	public function set_badge_controller_path() {
-	  return sprintf("%s/api/badge.php", $this->directory_path);
+	public function bp_group_join_button_from_id($group_id){
+			if ($group_id != '45'){
+				return;	
+			}
+			global $bp;
+			$group = groups_get_group( array( 'group_id' => $group_id ) );
+			return ($group);
+			if (empty($group))
+				return false;
+			if ( !is_user_logged_in() || bp_group_is_user_banned( $group ) )
+				return false;
+	
+			// Group creation was not completed or status is unknown
+			if ( !$group->status )
+				return false;
+			
+			// Already a member
+			if ( isset( $group->is_member ) && $group->is_member ) {
+	
+				// Stop sole admins from abandoning their group
+				$group_admins = groups_get_group_admins( $group->id );
+				if ( 1 == count( $group_admins ) && $group_admins[0]->user_id == bp_loggedin_user_id() )
+					return false;
+	
+				$button = array(
+					'id'                => 'leave_group',
+					'component'         => 'groups',
+					'must_be_logged_in' => true,
+					'block_self'        => false,
+					'wrapper_class'     => 'group-button prog ' . $group->status,
+					'wrapper_id'        => 'groupbutton-' . $group->id,
+					'link_href'         => wp_nonce_url( bp_get_group_permalink( $group ) . 'leave-group', 'groups_leave_group' ),
+					'link_text'         => __( 'Leave Group', 'buddypress' ),
+					'link_title'        => __( 'Leave Group', 'buddypress' ),
+					'link_class'        => 'group-button leave-group',
+				);
+	
+			// Not a member
+			} else {
+	
+				// Show different buttons based on group status
+				switch ( $group->status ) {
+					case 'hidden' :
+						return false;
+						break;
+	
+					case 'public':
+						$button = array(
+							'id'                => 'join_group',
+							'component'         => 'groups',
+							'must_be_logged_in' => true,
+							'block_self'        => false,
+							'wrapper_class'     => 'group-button prog ' . $group->status,
+							'wrapper_id'        => 'groupbutton-' . $group->id,
+							'link_href'         => wp_nonce_url( bp_get_group_permalink( $group ) . 'join', 'groups_join_group' ),
+							'link_text'         => __( 'Join Group', 'buddypress' ),
+							'link_title'        => __( 'Join Group', 'buddypress' ),
+							'link_class'        => 'group-button join-group',
+						);
+						break;
+	
+					case 'private' :
+						return false;
+						break;
+	
+				}
+			}
+		return (bp_get_button( apply_filters( 'bp_get_group_join_button', $button ) ));
 	}
-
 
 	/**
 	 * Activation hook for the plugin.
@@ -443,4 +787,35 @@ class Conferencer_BP_Addon {
 
 // Instantiate our class to a global variable that we can access elsewhere
 $GLOBALS['conferencer_bp_addon'] = new Conferencer_BP_Addon();
+
+/*
+Plugin Name: Custom Profile Filters for BuddyPress
+Plugin URI: http://dev.commons.gc.cuny.edu
+Description: Changes the way that profile data fields get filtered into clickable URLs.
+Version: 0.3.1
+Author: Boone Gorges
+Author URI: http://teleogistic.net
+*/
+$no_link_fields           = array( // Enter the field ID of any field that you want to appear as plain, non-clickable text. Don't forget to separate with commas.
+	'Skype ID ',
+	'Phone',
+	'IM'
+);
+$social_networking_fields = array( // Enter the field ID of any field that prompts for the username to a social networking site, followed by the URL format for profiles on that site, with *** in place of the user name. Thus, since the URL for the profile of awesometwitteruser is twitter.com/awesometwitteruser, you should enter 'Twitter' => 'twitter.com/***'. Don't forget: 1) Leave out the 'http://', 2) Separate items with commas
+	'Twitter' => 'twitter.com/***',
+	'Delicious ID' => 'delicious.com/***',
+	'Diigo ID' => 'diigo.com/user/***',
+	'YouTube ID' => 'youtube.com/***',
+	'Flickr ID' => 'flickr.com/***',
+	'Slideshare ID' => 'slideshare.net/***',
+	'FriendFeed ID' => 'friendfeed.com/***',
+	'LinkedIn' => 'linkedin.com/in/***',
+	'Google+' => 'plus.google.com/***',
+);
+/* Only load the BuddyPress plugin functions if BuddyPress is loaded and initialized. */
+function custom_profile_filters_for_buddypress_init() {
+	require( dirname( __FILE__ ) . '/includes/custom-profile-filters-for-buddypress-bp-functions.php' );
+}
+
+add_action( 'bp_init', 'custom_profile_filters_for_buddypress_init' );
 
