@@ -2279,10 +2279,6 @@ msgid ""
 "Registering for this site is easy, just fill in the fields below and we'll "
 "get a new account set up for you in no time."
 msgstr ""
-"To register for an account on this site fill in the fields below. Please "
-"note that by doing this and clicking 'Complete Sign Up' you are agreeing to "
-"our <a href=\"/conference/2014/terms-of-use/\" target=\"_blank\">Terms of "
-"Use</a>. "
 
 #: ../Custom-Community/registration/register.php:35
 #: ../Custom-Community-Pro/registration/register.php:35

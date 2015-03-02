@@ -26,6 +26,8 @@ jQuery(document).ready(function($) {
 
 // JavaScript Document
 jQuery(document).ready(function($) {
+	$('.widget_conferencer_sponsors_widget .sponsors').fadeshow();
+	
 	var instructions = "If you would like us to include your blog posts in the 'Reader' enter your blog address and <a id='searchForRSS' href='javascript:void(0)'>click here</a> and select the correct 'Blog RSS' from below. Any blog posts that you publish with #altc in the post title or body will automatically be included in the Reader.";
 	var blog_field = $('.field_blog input[type=text]');
 	var newText = $('<legend id="bloginstruc" style="width:75%">'+instructions+'</legend>').insertAfter(blog_field);	
@@ -78,7 +80,52 @@ jQuery(document).ready(function($) {
 		);
 	});
 });
+(function($) {
+	$.fn.fadeshow = function(opts) {
+		var options = {
+			interval: 5000,
+			fadespeed: 1000
+		};
+		
+		if (opts) $.extend(options, opts);
+		
+		return this.each(function() {
+			var container = $(this);
+			var slides = $(container).children();
+			//console.log(container.parent().height());
 
+			/*var height = 0;
+			$.each(slides, function() {
+				height = Math.max(height, $(this).height());
+			});
+			*/
+			var height = container.parent().height()-20;
+			$.each(slides, function() {
+				/*$(this).css({
+					'margin-top': Math.floor((height - $(this).find('img').height())/2) + 'px'
+				});*/
+				console.log($(this).find('img:first').height());
+			})
+			
+			//container.height(height);
+			slides.first().css({ opacity: 1 }).addClass('active');
+			if (slides.length <= 1) return;
+			
+			setInterval(function() {
+				active = $('.active', container);
+				next = active.next().length ? active.next() : slides.first();
+				
+				$(active).animate({ opacity: 0 }, options.fadespeed, function() {
+					$(this).removeClass('active');
+				});
+				
+				$(next).animate({ opacity: 1 }, options.fadespeed, function() {
+					$(this).addClass('active');
+				});
+			}, options.interval);
+		});
+	};
+})(jQuery);
 /* Rewrite of 
 Plugin Name: RS Buddypress Activity Refresh
 PLugin URI: http://buddypress.org/community/groups/rs-buddypress-activity-refresh/

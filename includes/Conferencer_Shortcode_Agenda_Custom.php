@@ -191,7 +191,7 @@ $track_array = array();
 $out_types = array();
 //$out = "<!-- ";
 ?>
-<?php  echo '<script src="'.plugins_url( 'js/confprog.js?v=33' , dirname(__FILE__) ).'"></script>'; ?>
+<?php  echo '<script src="'.plugins_url( 'js/confprog.js?v=35' , dirname(__FILE__) ).'"></script>'; ?>
 <div class="agenda-filter">
 <h2>Filters</h2>
 <div id="theme-filters">
@@ -216,6 +216,9 @@ foreach ($out_types as $track_name => $track_values) {
 </div>
 <h3>Your Sessions Filter</h3>
 <div class="mysessions"><img src="<?php echo plugins_url( 'images/icons/loading.gif' , dirname(__FILE__) )?>/" /></div>
+<?php if (is_user_logged_in()) {
+	echo '<div class="myical generic-button group-button public" style="display:none"><a href="?ical=all">Download all my sessions (.ics)</a></div>';
+}?>
 </div>
 			<?php if ($tabs) { ?>
 				<div class="conferencer_tabs">
@@ -401,7 +404,7 @@ foreach ($out_types as $track_name => $track_values) {
 		<a name="sessionid<?php echo $group_id ;?>"></a>
 		<div class="session <?php if ($session->track) echo "track-".Conferencer_BP_Addon::get_the_slug($session->track); ?>" group-id="<?php echo $group_id ;?>">
         <div class="generic-button group-button prog public" id="groupbutton-<?php echo $group_id ;?>" style="display:none">
-        <?php echo '<a id="group-' . esc_attr( $group_id ) . '" class="join-group" rel="join" title="' . __( 'Join Group', 'buddypress' ) . '" href="' . wp_nonce_url( trailingslashit( bp_get_root_domain() . '/' . bp_get_groups_root_slug() . '/' . groups_get_slug($group_id) . '/' ) . 'join', 'groups_join_group' ) . '">' . __( 'Join Group', 'buddypress' ) . '</a>';
+        <?php //echo '<a id="group-' . esc_attr( $group_id ) . '" class="join-group" rel="join" title="' . __( 'Join Group', 'buddypress' ) . '" href="' . wp_nonce_url( trailingslashit( bp_get_root_domain() . '/' . bp_get_groups_root_slug() . '/' . groups_get_slug($group_id) . '/' ) . 'join', 'groups_join_group' ) . '">' . __( 'Join Group', 'buddypress' ) . '</a>';
 		?></div>
             <?php $islive = get_post_meta($session->ID, 'conc_wp_live', true);
 				if ($islive) echo '<div class="islive">LIVE STREAMED</div>'; ?>

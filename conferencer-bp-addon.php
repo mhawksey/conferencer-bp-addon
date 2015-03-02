@@ -92,29 +92,9 @@ class Conferencer_BP_Addon {
 				add_action( 'bp_notification_settings', array( $this, 'newsletter_subscription_notification_settings') );
 			//}
 		}
-		/*if (class_exists('MailPress') && class_exists('MailPress_sync_wordpress_user')){
-			add_action('bp_core_signup_user', array('MailPress_sync_wordpress_user', 'user_register'), 1, 1);
-			add_action( 'xprofile_updated_profile', array('MailPress_sync_wordpress_user', 'update'), 1, 1);
-			add_action( 'bp_core_delete_account ', array('MailPress_sync_wordpress_user', 'delete'), 1, 1);
-		}*/
-		//add_action('wp_ajax_nopriv_get_joinleave_buttons_array', array( $this, 'get_joinleave_buttons_array');
-
-		// add open badges logging
-		/*add_action( 'init', array( $this, 'open_badges_log_post_type' ) );
-
-		add_action( 'init', array( $this, 'register_scripts_and_styles' ) );
-
-		add_shortcode( 'badgeos_backpack_push', array(&$this, 'badgeos_backpack_push_shortcode') );
-		add_shortcode( 'badgeos_backpack_registered_email', array(&$this, 'badgeos_backpack_reg_email_shortcode') );
-		if (get_option('open_badges_issuer_public_evidence')){
-			add_filter('badgeos_public_submissions', array(&$this, 'set_public_badge_submission'), 999, 1);
+		if (class_exists('MailPress')){
+			wp_cache_add_non_persistent_groups(array('mp_addons', 'mp_mail', 'mp_user', 'mp_field', 'mp_form'));
 		}
-
-		add_action( 'wp_ajax_open_badges_recorder', array(&$this, 'badgeos_ajax_open_badges_recorder'));
-		//add_action( 'wp_ajax_open_badges_recorder', 'badgeos_ajax_open_badges_recorder');
-		// not doing it this way as achievement ids are handled differently
-		//add_filter('badgeos_render_achievement', array( $this, 'badgeos_render_openbadge_button'), 10 ,2);
-		*/
 	} /* __construct() */
 
 	function bp_load_plugin_textdomain() {
@@ -171,7 +151,9 @@ class Conferencer_BP_Addon {
 	}
 	// http://wordpress.org/support/topic/some-very-useful-tips-for-mailpress
 	public function get_mailpress_mlink($user_email) {
-		echo 'To manage your newsletter subscription goto <a href="'.MP_User::get_unsubscribe_url(MP_User::get_key_by_email($user_email)).'">Manage Newsletter Subscriptions</a>';
+		if(class_exists('MailPress')){
+			echo 'To manage your newsletter subscription goto <a href="'.MP_User::get_unsubscribe_url(MP_User::get_key_by_email($user_email)).'">Manage Newsletter Subscriptions</a>';
+		}
 	}
 
 	
@@ -400,13 +382,20 @@ class Conferencer_BP_Addon {
 		$rec = "";
 		$youtube_id = get_post_meta($id, 'conc_wp_live', true);
 		if ($youtube_id && strlen($youtube_id) > 2) {
-			$instruc = __("Please register/login and follow this session to comment on this video", 'conferencer_bp_addon') ;
+			$help_url = "http://altc.alt.ac.uk/conference/2014/help/online-participation/";
+			$instruc = sprintf( __('Please <a href="%s">register</a>/login and follow this session to comment on this video (<a href="%s">Help</a>).<br/>Contributing via Twitter and have a question during the live session use the tags #altc #Q', 'conferencer_bp_addon'), bp_get_signup_page(), $help_url) ;
 			//$rec = '<a href="'.$islive.'" class="islive">RECORDING</a>';
-			$youtube = sprintf('<div class="youtube"><iframe width="640" height="340" src="//www.youtube.com/embed/%s?enablejsapi=1" frameborder="0" allowfullscreen="allowfullscreen"></iframe></div><div class="youtube_info">%s</div>', $youtube_id, $instruc ) ;
+			$youtube = sprintf('<div class="youtube"><iframe width="540" height="340" src="//www.youtube.com/embed/%s?enablejsapi=1" frameborder="0" allowfullscreen="allowfullscreen"></iframe></div><div class="youtube_info">%s</div>', $youtube_id, $instruc ) ;
 		}	
+		$chat_id = get_post_meta($id, 'conc_wp_chat', true);
+		$chat_embed = "";
+		if($chat_id){
+			$chat_embed = '<iframe width="450" height="350" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" allowtransparency="true" src="http://chatroll.com/embed/chat/altc?id=Kex3IVaS50M&platform=html&w=$0"></iframe>'; //do_shortcode("[chatroll width='100%' height='350' id='Kex3IVaS50M' name='altc' apikey='kyhdrdzoyxlbhh3p']");
+		}
+		
 		if (!is_admin()){
 			$content = '<div style="float:right;">'.$this->google_calendar_link($id).$this->ics_calendar_link($id).'</div>'
-					   .$session_meta.'<div style="clear:both">'.$content.$youtube.'</div>';
+					   .$session_meta.'<div style="clear:both">'.$content.$youtube.$chat_embed.'</div>';
 		} else {
 			$content = $session_meta;
 		}
@@ -429,10 +418,15 @@ class Conferencer_BP_Addon {
 	 * Modified from http://wordpress.org/plugins/events-manager/
 	 */
 	function ical_event($wp_query){
-		if(isset($wp_query->query_vars['ical']) && $wp_query->query_vars['ical']=="1") {
+		if(isset($wp_query->query_vars['ical']) && ($wp_query->query_vars['ical']=="1" || $wp_query->query_vars['ical']=="all")) {
 			//send headers
+			if (isset($wp_query->query_vars['sessionid']) && $wp_query->query_vars['sessionid']!== ""){
+				$filename = $this->get_the_slug($wp_query->query_vars['sessionid']);
+			} else {
+				$filename = bp_core_get_username($wp_query->query_vars['user_id']);
+			}
 			header('Content-type: text/calendar; charset=utf-8');
-			header('Content-Disposition: inline; filename="'.$this->get_the_slug($wp_query->query_vars['sessionid']).'.ics"');
+			header('Content-Disposition: inline; filename="'.$wp_query->query_vars['sessionid'].'.ics"');
 			load_template( $this->directory_path . 'includes/ical.php');
 			exit();
 		}
@@ -588,7 +582,7 @@ class Conferencer_BP_Addon {
 	}
 	
 	function my_front_enqueue() {
-		wp_dequeue_script( 'conferencer' );
+		wp_dequeue_script( 'conferencer' );\
 		wp_dequeue_script( 'jquery-timeago-js');
 		wp_dequeue_script( 'rs-bp-activity-refresh-ajax-js' );
 		wp_enqueue_script( 'jquery-address' );
@@ -599,8 +593,8 @@ class Conferencer_BP_Addon {
 	function register_scripts_and_styles() {
 		wp_enqueue_script( 'con-jquery-timeago-js', $this->directory_url . '/js/jquery.timeago.js', array( 'jquery' ) );
 		wp_register_script( 'jquery-address', $this->directory_url . '/js/jquery.address-1.5.min.js', array( 'jquery' ));
-		wp_register_script( 'conferencer-addon', $this->directory_url . '/js/conferencer-addon.js', array( 'jquery' ), '1.0.52');
-		wp_register_style( 'conferencer-addon-style', $this->directory_url . '/css/style.css', NULL, '1.0.48' );
+		wp_register_script( 'conferencer-addon', $this->directory_url . '/js/conferencer-addon.js', array( 'jquery' ), '1.0.74');
+		wp_register_style( 'conferencer-addon-style', $this->directory_url . '/css/style.css', NULL, '1.0.51' );
 	}
 
 	function add_query_vars($aVars) {
@@ -624,11 +618,14 @@ class Conferencer_BP_Addon {
 											   'per_page' => -1));
 		echo json_encode($user_groups );
 		die();*/		
-		groups_is_user_member( $user_id, $group_id );							   
+		//groups_is_user_member( $user_id, $group_id );							   
 		foreach($gids as $group_id){
 			$group = groups_get_group( array( 'group_id' => $gid ) );
+			$group_url = trailingslashit( bp_get_root_domain() . '/' . bp_get_groups_root_slug() . '/' . groups_get_slug($group_id) . '/' );
 			if (groups_is_user_member( $user_id, $group_id )){
-				$buts[$group_id] = '<a id="group-' . esc_attr( $group_id ) . '" class="leave-group" rel="leave" title="' . __( 'Leave Group', 'buddypress' ) . '" href="' . wp_nonce_url( trailingslashit( bp_get_root_domain() . '/' . bp_get_groups_root_slug() . '/' . groups_get_slug($group_id) . '/' ) . 'leave-group', 'groups_leave_group' ) . '">' . __( 'Leave Group', 'buddypress' ) . '</a>';
+				$buts[$group_id] = '<a id="group-' . esc_attr( $group_id ) . '" class="leave-group" rel="leave" title="' . __( 'Leave Group', 'buddypress' ) . '" href="' . wp_nonce_url( $group_url . 'leave-group', 'groups_leave_group' ) . '">' . __( 'Leave Group', 'buddypress' ) . '</a>';
+			} else {
+				$buts[$group_id] = '<a id="group-' . esc_attr( $group_id ) . '" class="join-group" rel="join" title="' . __( 'Join Group', 'buddypress' ) . '" href="' . wp_nonce_url( $group_url . 'join', 'groups_join_group' ) . '">' . __( 'Join Group', 'buddypress' ) . '</a>';	
 			}
 		}
 		echo json_encode($buts);

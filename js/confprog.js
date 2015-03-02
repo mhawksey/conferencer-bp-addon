@@ -74,6 +74,15 @@ jq( document ).ready(function() {
     } else {
 		$('.tabs > li > a:first').click();	
 	}
+	$(window).bind('hashchange', function( e ) {
+		if ($.address.value() != '/') {
+			hashparts = $.address.value().split('/');
+			var curTab = '#'+hashparts[1];
+			$('a[href="'+curTab+'"]').click();
+		} else {
+			$('.tabs > li > a:first').click();	
+		}
+	});
 	
 	//jq('.session a').address();  
 	jq('.mysessions').toggle(function(){
@@ -157,7 +166,8 @@ jq( document ).ready(function() {
 				sess.html(val);
 			});
 			jq(".mysessions").html("<a href='#'>My Sessions</a>");
-			jq(".generic-button.prog").show();	
+			
+			jq(".generic-button.prog, .myical").show();	
 			var hash = (hashparts[2] !== 'undefined' ) ? hashparts[2] : false;
 			if (hash == "my"){
 				jq('.mysessions').click();
