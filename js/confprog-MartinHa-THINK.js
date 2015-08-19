@@ -44,27 +44,22 @@ jq(document).on('click', 'div.group-button a', function() {
 	);
 	
 jq( document ).ready(function() {
-	moveScroller();
-	
 	jq('.myicalfeed a').click(function(e) {
 		e.preventDefault();
 		jq( "#myicalurlbox" ).slideToggle( "slow" );
 	});
 	var separator = '-';
 	jq('.conferencer_tabs').each(function() {
-		var tabs = jq('.tabs li', this);
-		var allContent = jq([]);
+		var tabs = $('.tabs li', this);
+		var allContent = $([]);
 		
 		tabs.each(function() {
-			var tab = jq(this);
-			var content = jq(jq('a', this).attr('href'));
-			allContent = jq(allContent).add(content);
+			var tab = $(this);
+			var content = $($('a', this).attr('href'));
+			allContent = $(allContent).add(content);
 			
-			jq('a', tab).click(function(e) {
-				var hashparts = jq.address.value().split('/');
-				var targetHash = e.target.hash.replace(/^#/, '');
-				hashparts[1] = e.target.hash.replace(/^#/, '')
-				jq.address.value(hashparts.join('/'));
+			$('a', tab).click(function(e) {
+				$.address.value(e.target.hash.replace(/^#/, '').replace(separator, '/'));
 				tabs.removeClass('current');
 				tab.addClass('current');
 				
@@ -76,26 +71,60 @@ jq( document ).ready(function() {
 		});
 	});
 	
-	if (jq.address.value() != '/') {
-		hashparts = jq.address.value().split('/');
+	if ($.address.value() != '/') {
+		hashparts = $.address.value().split('/');
 		var curTab = '#'+hashparts[1];
-		jq('a[href="'+curTab+'"]').click();
+		$('a[href="'+curTab+'"]').click();
     } else {
-		jq('.tabs > li > a:first').click();	
+		$('.tabs > li > a:first').click();	
 	}
-	jq(window).bind('hashchange', function( e ) {
-		if (jq.address.value() != '/') {
-			hashparts = jq.address.value().split('/');
+	$(window).bind('hashchange', function( e ) {
+		if ($.address.value() != '/') {
+			hashparts = $.address.value().split('/');
 			var curTab = '#'+hashparts[1];
-			jq('a[href="'+curTab+'"]').click();
+			$('a[href="'+curTab+'"]').click();
 		} else {
-			jq('.tabs > li > a:first').click();	
+			$('.tabs > li > a:first').click();	
 		}
 	});
+	jq("#allsession_box, #mysession_box").on('click', function () {
+		if (jq("#allsession_box").is(':checked')) {
+            jq('.join-group').parent().parent().slideUp();
+			window.location.hash = '/'+hashparts[1]+"/my";
+        }
+        else {
+            jq('.join-group').parent().parent().slideDown();
+			jq('input:checkbox').change();
+			window.location.hash = '/'+hashparts[1]+"/all";
+        }
+	});
+	//jq('.session a').address();  
+	/*jq('.mysessions').on('click', function() {
+		var checkbox = jq(this).find(':checkbox');
+		checkbox.each(function(){
+		   jq(this).prop('checked', !checkbox[0].checked);
+		});
+	*/
+	
+		/*
+		if (jq(this).find('#allsession_box').is(':checked')){
+			jq('#allsession_box').prop('checked',false);
+			jq('#mysession_box').prop('checked',true);
+			jq('.join-group').parent().parent().slideUp();
+			window.location.hash = '/'+hashparts[1]+"/my";
+		} else if (jq(this).find('#mysession_box').is(':checked')){
+			jq('#allsession_box').prop('checked',true);
+			jq('#mysession_box').prop('checked',false);
+			jq('.join-group').parent().parent().slideDown();
+			jq('input:checkbox').change();
+			window.location.hash = '/'+hashparts[1]+"/all";
+		}*/
+	//});
 
 	jq(".track input:checkbox, .type input:checkbox").on('change', function() {
 		var session_class = '.session.' +  this.id;   
-		if (jq('.mysessions').find("img").length === 0){
+		var sessionState = jq('.mysessions').text();
+		if (sessionState == 'My Sessions' || sessionState == 'Not logged in'){
 			jq(this).is(':checked') ? jq(session_class).slideDown() : jq(session_class).slideUp();
 			jq(this).is(':checked') ? createCookie(this.id, true) : createCookie(this.id, false);
 		} else {
@@ -116,7 +145,7 @@ jq( document ).ready(function() {
 		}
 		//jq(this).prop('checked', chk);
 	});
-	jq(".session a.expander").on('click', function(e){
+	jq(".session a.expander").on('click touchstart', function(e){
 		var tip = jq(this).parent().find(".session-ex-text");
 		var chev = jq(this).find(".fa");
 		if (!tip.is(":visible")){
@@ -130,6 +159,15 @@ jq( document ).ready(function() {
 			tip.slideUp(); 
 		}	
 	});
+	/*jq('.check').toggle(function(){
+        jq('.'+jq(this).attr("id")+' input:checkbox').removeAttr('checked');
+		jq('input:checkbox').change();
+        jq(this).text('Check All'); 
+    },function(){
+		jq('.'+jq(this).attr("id")+' input:checkbox').attr('checked','checked');
+		jq('input:checkbox').change();
+        jq(this).text('Uncheck All');       
+    });*/
 
 	
 	// http://stackoverflow.com/a/5334231/1027723
@@ -154,81 +192,36 @@ jq( document ).ready(function() {
 				var sess = jq(".generic-button[id='groupbutton-"+key+"']");
 				sess.html(val);
 			});
-			jq(".mysessions").html('<label for="allsession"><input id="allsession_box" name="sess" type="radio" checked/>All Sessions</label> <label for="mysession"><input id="mysession_box" type="radio" name="sess" />My Sessions</label>');
-			jq(".mysessions input").on('click', function () {
-				if (!jq("#allsession_box").is(':checked')) {
-					jq('.join-group').parent().parent().slideUp();
-					window.location.hash = '/'+hashparts[1]+"/my";
-				}
-				else {
-					jq('.join-group').parent().parent().slideDown();
-					jq('input:checkbox').change();
-					window.location.hash = '/'+hashparts[1]+"/all";
-				}
-			});
-
+			jq(".mysessions").html('<label for="allsession"><input id="allsession_box" name="sess" type="radio" checked/>All Sessions <label for="mysession"><input id="mysession_box" type="radio" name="sess" />My Sessions</label>');
 			if (data.uid){
-				jq("#myicalurl").val(data.site+'/?ical=feed&uid='+data.uid);
-				jq(".myicalfeed a").attr('href', data.site+'/?ical=feed&uid='+data.uid);
+				jq("#myicalurl").val(data.uid);
+				jq(".myicalfeed a").attr('href', data.uid);
 				jq(".myicalfeed").show();
-				
-				jq(".myical a").attr('href', data.site+'/?ical=download&uid='+data.uid);
-				jq(".myical").show();
 			}
 			
-			jq(".generic-button.prog").show();
-			
+			jq(".generic-button.prog, .myical").show();	
 			var hash = (hashparts[2] !== 'undefined' ) ? hashparts[2] : false;
 			if (hash == "my"){
-				jq('#mysession_box').click();
-				jq('.join-group').parent().parent().slideUp();
-				window.location.hash = '/'+hashparts[1]+"/my";
+				jq('.mysessions').click();
 			}
 		})
 		
-		
 });
 
-// http://stackoverflow.com/a/2153775/1027723
-function moveScroller() {
-	var move = function() {
-		var st = jq(window).scrollTop();
-		var ts = jq(".ts");
-		
-		ts.each(function() {
-			var tp = 0;
-			var wpb = jq('#wpadminbar').height();
-			var s = jq(this).next();
-			var ot = jq(this).offset().top;
-			var oth = s.height();
-			var cb = ot+jq(this).parent().height()+oth;
-			
-			if ( jq(this).closest("tr").is(":last-child")){
-				cb = ot+jq(this).parent().height()
-			}
-	
-			if(st > ot && st < cb) {
-				var tp = 0;
-				if ( jq(this).closest("tr").is(":last-child") && st > cb-oth ){
-					tp = -(st-cb+oth);	
-				} 
-				s.css({
-					position: "fixed",
-					top: wpb+tp+"px"
-				});
-			} else {
-				if(st <= ot || st > cb) {
-					s.css({
-						position: "relative",
-						top: ""
-					});
-				}
-			}
-		});
-	};
-	jq(window).scroll(move);
-	move();
-}
+/*function sessionToggle(){
+	jq('.mysessions').toggle(function(){
+		jq('.group-button.join-group').parent().parent().slideUp();
+        //jq(this).find('a').text('All Sessions'); 
+		window.location.hash = "myb"
+		//return false;
+    },function(){
+		jq('.group-button.join-group').parent().parent().slideDown();
+		jq('input:checkbox').change();
+        //jq(this).find('a').text('My Sessions'); 
+		window.location.hash = "all"
+		//return false;      
+    });	
+}*/
 /* Returns a querystring of BP cookies (cookies beginning with 'bp-') */
 function bp_get_cookies() {
 	// get all cookies and split into an array

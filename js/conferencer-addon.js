@@ -1,7 +1,7 @@
 // JavaScript Document
 jQuery(document).ready(function($) {
 	// $("html, body").animate({ scrollTop: $('#item-nav').offset().top }, 1000);
-	if ($('#item-meta .excerpt').length>0 && !$('.youtube').length){
+	/*if ($('#item-meta .excerpt').length>0 && !$('.youtube').length){
 		$('.content').hide();
 	}
 	if ($('.youtube').length){
@@ -16,19 +16,40 @@ jQuery(document).ready(function($) {
 		$(this).parent('.content').slideUp('fast');
 		$(this).closest('#item-meta').find('.excerpt').show();
 		return false;
-	});
+	});*/
 	$('#group-settings-form #group-name, #group-settings-form #group-desc').attr('disabled', 'disabled');
 	$('#group-settings-form #delete-group-understand').parent().hide();
 	$('.delete-group #message p').text('Deleting sessions has been disabled. Use the Sessions menu in WP-Admin instead');
+	
+	$('#search-which > option:nth-child(2)').text( "Sessions");
 
 });
 
+// JavaScript Document
+jQuery(document).ready(function(jq) {
+	jq(".session-abstract a.expander").on('click touchstart', function(e){
+		var tip = jq(this).parent().find(".session-ex-text");
+		var chev = jq(this).find(".fa");
+		if (jq( this ).find('.fa').hasClass( "fa-chevron-up" )){
+			jq(".expander .fa").removeClass('fa-chevron-up');
+			jq(".expander .fa").addClass('fa-chevron-down');
+			jq(".abstract-text").addClass('excerpt').removeClass('excerpt-off');
+			jq("#item-header-content")[0].scrollIntoView();
+			//tip.slideDown(); 
+		} else {
+			jq(".expander .fa").addClass('fa-chevron-up');
+			jq(".expander .fa").removeClass('fa-chevron-down');
+			jq('.abstract-text').removeClass('excerpt').addClass('excerpt-off');
+			//tip.slideUp(); 
+		}	
+	});
+});
 
 // JavaScript Document
 jQuery(document).ready(function($) {
 	$('.widget_conferencer_sponsors_widget .sponsors').fadeshow();
 	
-	var instructions = "If you would like us to include your blog posts in the 'Reader' enter your blog address and <a id='searchForRSS' href='javascript:void(0)'>click here</a> and select the correct 'Blog RSS' from below. Any blog posts that you publish with #altc in the post title or body will automatically be included in the Reader.";
+	var instructions = "If you would like us to include your blog posts in the 'Reader' enter your blog address and <a id='searchForRSS' href='javascript:void(0)'>click here</a> and select the correct 'Blog RSS' from below.";
 	var blog_field = $('.field_blog input[type=text]');
 	var newText = $('<legend id="bloginstruc" style="width:75%">'+instructions+'</legend>').insertAfter(blog_field);	
 	$('#searchForRSS').on("click", function(event){
@@ -104,7 +125,7 @@ jQuery(document).ready(function($) {
 				/*$(this).css({
 					'margin-top': Math.floor((height - $(this).find('img').height())/2) + 'px'
 				});*/
-				console.log($(this).find('img:first').height());
+				//console.log($(this).find('img:first').height());
 			})
 			
 			//container.height(height);
@@ -137,7 +158,7 @@ Tags: buddypress
 Version: 1.8
 Author URI: http://buddypress.org/community/members/Spitzohr/
 */
-var	new_activities = 0;
+/*var	new_activities = 0;
 var original_page_title = '';
 var rsBpActivityRefreshTimeout;
 
@@ -236,22 +257,10 @@ jQuery(document).ready(function()
 	original_page_title = document.title;
 	if (jQuery('ul.activity-list').length > 0 || jQuery('body').hasClass('groups') && !jQuery('body').hasClass('activity-permalink'))
 	{
-		// create hidden field
-		jQuery('body').append('<div id="rs-hidden-response" style="display: none;"></div>');
+		var rsBpActivityRefreshRate = 10;
+		var rsBpActivityRefreshTimeago = true;
+		jQuery.timeago.settings.refreshMillis = 0;
 		
-		
-		jQuery('#activity-filter-select').prev().after('<li id="activity-refresh" style="float:right"><div class="activity-refresh-item"><a href="" id="activity-refresh-button">Auto-Refresh: Off</a></div></li>');
-		
-		$('#activity-refresh-button').toggle(function() {
-			$(this).attr('class', 'active').text('Auto-Refresh: On');
-			rsBpActivityRefreshTimeout = setTimeout( function(){rsBpAtivityRefresh_automaticRefresh(); } , rsBpActivityRefreshRate * 1000 );
-			return false;
-		}, function() {
-			$(this).attr('class', 'inactive').text('Auto-Refresh: Off');
-			clearTimeout(rsBpActivityRefreshTimeout);
-			return false;
-		});
-
 		if (typeof rsBpActivityRefreshRate == "undefined")
 		{
 			rsBpActivityRefreshRate = 10;
@@ -262,9 +271,27 @@ jQuery(document).ready(function()
 		}
 		// start refreshing
 		//var rsBpActivityRefreshTimeout = setTimeout( function(){rsBpAtivityRefresh_automaticRefresh(); } , rsBpActivityRefreshRate * 1000 );
+		
+		// create hidden field
+		jQuery('body').append('<div id="rs-hidden-response" style="display: none;"></div>');
+		
+		
+		jQuery('#activity-filter-select').prev().after('<li id="activity-refresh" style="float:right"><div class="activity-refresh-item"><a href="" id="activity-refresh-button">Auto-Refresh: Off</a></div></li>');
+		
+		jQuery('#activity-refresh-button').toggle(function() {
+			jQuery(this).attr('class', 'active').text('Auto-Refresh: On');
+			rsBpActivityRefreshTimeout = setTimeout( function(){rsBpAtivityRefresh_automaticRefresh(); } , rsBpActivityRefreshRate * 1000 );
+			return false;
+		}, function() {
+			jQuery(this).attr('class', 'inactive').text('Auto-Refresh: Off');
+			clearTimeout(rsBpActivityRefreshTimeout);
+			return false;
+		});
+
+		
 	}
 
 	jQuery('div.activity-type-tabs').click( function(event) {
 		document.title = original_page_title;
 	});
-});
+});*/

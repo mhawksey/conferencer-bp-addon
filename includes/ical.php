@@ -37,6 +37,7 @@ function ical_split($preamble, $value) {
 $session_id = $_GET['sessionid'];
 $ical = $_GET['ical'];
 $user_id = $_GET['user_id'];
+$uid = $_GET['uid'];
 if (isset($ical) || isset($session_id )):
 $output = "BEGIN:VCALENDAR
 VERSION:2.0
@@ -45,14 +46,31 @@ PRODID:-//".get_bloginfo()."//EN\n";
 echo $output;
 //echo preg_replace("/([^\r])\n/", "$1\r\n", $output);
 	if (isset($session_id) && $ical == 1){
-		ehco(render_cal_event($session_id));
-	} elseif ( $ical== 'all'){
-		$user_id = get_current_user_id();
+		echo(render_cal_event($session_id));
+	} elseif ( $ical== 'download' || $ical == 'feed'){
+		if ($uid){
+			$user = reset(
+				 get_users(
+				  array(
+				   'meta_key' => 'con_user_ical_uid',
+				   'meta_value' => $uid,
+				   'number' => 1,
+				   'count_total' => false,
+				   'fields' => 'ids'
+				  )
+				 )
+				);
+			if (!empty($user)){
+				$user_id = $user;
+			} else {
+				return;	
+			}
+		} else {
+			return;
+		}
+		
 		$group_ids = BP_Groups_Member::get_group_ids($user_id);
-		//print_r($groups);
-		/*if ( empty( $group_ids) ){
-			return false;
-		}*/	
+
 		
 		foreach ( $group_ids['groups'] as $group_id ) {
 			$args = array ('post_type' => 'session',
@@ -72,7 +90,7 @@ echo $output;
 			}
 		}	
 	}
-echo "\nEND:VCALENDAR";
+echo "END:VCALENDAR";
 endif; // querystring
 
 function render_cal_event($id){ 
@@ -86,7 +104,7 @@ function render_cal_event($id){
 	
 	
 	//formats
-	$summary = $post->post_title;
+	$summary = ical_escape_text($post->post_title);
 	$permalink = get_permalink($id);
 	$altdescription = do_shortcode("[session_meta
 								post_id='$post->ID'
@@ -98,6 +116,7 @@ function render_cal_event($id){
 	//$altdescription = html_entity_decode($altdescription, ENT_QUOTES, "utf-8");
 	//$altdescription = str_replace("\r\n","\\n",str_replace(";","\;",str_replace(",",'\,',$altdescription)));
 	$description = ical_escape_text($altdescription);
+	$description = str_replace(array("\r\n", "\n", "\r"), "\\n", $description);
 	$location = ical_escape_text(get_the_title($post->room));
 	$dateModified = get_gmt_from_date($post->post_modified, 'Ymd\THis\Z');
 	
@@ -145,4 +164,3 @@ function ical_escape_text($text) {
   $text = str_replace("\r\n","\\n",str_replace(";","\;",str_replace(",",'\,',$text)));
   return $text;
 }
-?>
