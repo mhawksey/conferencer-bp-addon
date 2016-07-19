@@ -178,16 +178,6 @@ line-height: 1em;
 #item-header-content span.highlight {
 display:none;	
 }
-.groups div#item-header-avatar,
-.groups div#item-header div#item-actions,
-#groups-dir-list .item-avatar,
-#groups-list .item-avatar,
-#sidebar #groups-list .item-avatar {
-    display: none
-}
-body.directory.groups #buddypress ul.item-list li div.item-title {
-    width: 100%;
-}
 .cal_button {
 float:right;	
 }

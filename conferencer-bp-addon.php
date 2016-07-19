@@ -496,7 +496,7 @@ class Conferencer_BP_Addon {
 			$content .= sprintf('<div class="youtube"><iframe width="540" height="340" src="//www.youtube.com/embed/%s?enablejsapi=1" frameborder="0" allowfullscreen="allowfullscreen"></iframe></div><div class="youtube_info">%s</div>', $youtube_id, $instruc ) ;
 		}
 		if ($post_content !=""){
-			$content .= '<div class="session-abstract"><h3>Abstract<a name="abstract"></a></h3>';
+			$content .= '<div class="session-abstract"><h3>Description<a name="abstract"></a></h3>';
 			$content .= '<div class="abstract-text excerpt">'.$post_content.'</div>';
 			$content .= '<a class="expander"><i class="fa fa-chevron-down"></i></a></div>';
 		}
@@ -700,7 +700,7 @@ class Conferencer_BP_Addon {
 		//wp_enqueue_script( 'con-jquery-timeago-js', $this->directory_url . '/js/jquery.timeago.js', array( 'jquery' ) );
 		wp_register_script( 'jquery-address', $this->directory_url . '/js/jquery.address-1.5.min.js', array( 'jquery' ));
 		wp_register_script( 'conferencer-addon', $this->directory_url . '/js/conferencer-addon.js', array( 'jquery' ), '1.0.89');
-		wp_register_style( 'conferencer-addon-style', $this->directory_url . '/css/style.css', array( 'dashicons' ), '1.0.58' );
+		wp_register_style( 'conferencer-addon-style', $this->directory_url . '/css/style.css', array( 'dashicons' ), '1.0.59' );
 		wp_register_style( 'conferencer-addon-admin-style', $this->directory_url . '/css/admin-style.css', NULL, '1.0.52' );
 	}
 	
@@ -858,15 +858,14 @@ class Conferencer_BP_Addon {
 		global $wpdb;
 
 		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-	
-		$charset_collate=  !empty( $wpdb->charset ) ? "DEFAULT CHARACTER SET {$wpdb->charset}" : '';
+		$charset_collate = !empty( $wpdb->charset ) ? "DEFAULT CHARACTER SET {$wpdb->charset}" : '';
 		$bp_prefix       = bp_core_get_table_prefix();
 	
 		$sql = "CREATE TABLE {$bp_prefix}bp_groups (
 					id bigint(20) NOT NULL AUTO_INCREMENT PRIMARY KEY,
 					creator_id bigint(20) NOT NULL,
-					name varchar(256) NOT NULL,
-					slug varchar(200) NOT NULL,
+					name varchar(300) NOT NULL,
+					slug varchar(300) NOT NULL,
 					description longtext NOT NULL,
 					status varchar(10) NOT NULL DEFAULT 'public',
 					enable_forum tinyint(1) NOT NULL DEFAULT '1',
