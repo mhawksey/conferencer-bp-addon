@@ -29,7 +29,7 @@ class Conferencer_Shortcode_Agenda_Custom extends Conferencer_Shortcode {
 	function prep_options() {
 		parent::prep_options();
 		
-		if (!in_array($this->options['column_type'], array('track', 'room'))) {
+		if (!in_array($this->options['column_type'], array('track', 'room', 'type'))) {
 			$this->options['column_type'] = false;
 		}
 		
@@ -404,10 +404,13 @@ class Conferencer_Shortcode_Agenda_Custom extends Conferencer_Shortcode {
 <a name="sessionid<?php echo $group_id ;?>"></a>
 <div class="session <?php if ($session->track) echo " track-".Conferencer_BP_Addon::get_the_slug($session->track); 
 						  if ($session->type) echo " type-".Conferencer_BP_Addon::get_the_slug($session->type);?>" group-id="<?php echo $group_id ;?>">
-  <div class="generic-button group-button prog public" id="groupbutton-<?php echo $group_id ;?>" style="display:none">
-    <?php //echo '<a id="group-' . esc_attr( $group_id ) . '" class="join-group" rel="join" title="' . __( 'Join Group', 'buddypress' ) . '" href="' . wp_nonce_url( trailingslashit( bp_get_root_domain() . '/' . bp_get_groups_root_slug() . '/' . groups_get_slug($group_id) . '/' ) . 'join', 'groups_join_group' ) . '">' . __( 'Join Group', 'buddypress' ) . '</a>';
-		?>
-  </div>
+  <div class="generic-button group-button prog public" id="groupbutton-<?php echo $group_id ;?>" style="display:none"></div>
+    <?php 
+		/*$webinar_link = get_post_meta($session->ID, 'con_webinar_link', true);
+		if ($webinar_link) {
+				echo'<div class="generic-button webinar-button"><a href="'.$webinar_link.'">Join Webinar</a></div>';
+		}*/
+	?>
   <?php if (get_post_meta($session->ID, 'con_live', true)) echo '<div class="islive">Live Streamed</div>'; ?>
   <?php echo do_shortcode("
 				[session_meta

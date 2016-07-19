@@ -7,6 +7,12 @@ float:right;
 .generic-button.group-button a, .generic-button.group-button a:hover, .generic-button.group-button a:active,.generic-button.back a,.generic-button.back a:hover, .generic-button.back a:active{
 font-size: 14px;
 }
+.generic-button.webinar-button{
+float: right;
+clear: right;
+padding-top: 10px;
+font-size: 14px;
+}
 .agenda td {
 padding:0;	
 }
@@ -172,7 +178,19 @@ line-height: 1em;
 #item-header-content span.highlight {
 display:none;	
 }
-
+.groups div#item-header-avatar,
+.groups div#item-header div#item-actions,
+#groups-dir-list .item-avatar,
+#groups-list .item-avatar,
+#sidebar #groups-list .item-avatar {
+    display: none
+}
+body.directory.groups #buddypress ul.item-list li div.item-title {
+    width: 100%;
+}
+.cal_button {
+float:right;	
+}
 .agenda .session {
   border-top: 1px solid #EEE;
   -moz-box-shadow: 2px 2px 5px #888;
@@ -187,10 +205,13 @@ display:none;
 cursor:pointer;	
 }
 .session-abstract{
-
+	word-wrap: break-word;
+    display: table;
+    table-layout: fixed;
+    width: 100%;
 }
 .session-abstract .excerpt{
-	overflow: hidden;
+	overflow-y: hidden;
 	position: relative;
     line-height: 1.5em;
     max-height: 4.5em;
@@ -207,7 +228,6 @@ cursor:pointer;
   background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1) 100%);
 }
 .session-abstract .excerpt-off{
-	overflow: visible;
 	line-height: 1.5em;
     height: 100%;
 	max-height:10000px;

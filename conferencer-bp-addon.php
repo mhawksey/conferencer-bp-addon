@@ -99,6 +99,12 @@ class Conferencer_BP_Addon {
 			add_filter( 'user_contactmethods', array( $this, 'add_hide_profile_fields'),10,1);
 			add_action( 'wp_ajax_xprofile_detect_blog_rss', array( $this, 'xprofile_detect_blog_rss'),0,99);
 			add_action( 'bp_core_activated_user', array( $this, 'bpdev_add_user_to_registering_blog'));
+			// For members :
+			add_filter( 'bp_is_profile_cover_image_active', '__return_false' );
+			 
+			// For groups :
+			add_filter( 'bp_is_groups_cover_image_active', '__return_false' );
+			add_action( 'after_setup_theme', array( $this, 'cover_images_no_support') );
 			//add_filter( 'bp_get_activity_action_pre_meta', array( $this, 'bp_dtheme_activity_secondary_avatars'), 10, 2 );
 			//if (class_exists('MailPress')){
 				add_action( 'bp_notification_settings', array( $this, 'newsletter_subscription_notification_settings') );
@@ -136,7 +142,9 @@ class Conferencer_BP_Addon {
 		
 		return $action;
 	}
-
+	function cover_images_no_support() {
+		remove_action( 'bp_after_setup_theme', 'bp_register_theme_compat_default_features', 10 );
+	}
 	function logged_in_force_ssl( $force_ssl, $post_id ) {
 		if ( is_user_logged_in() ) {
 			$force_ssl = true;
@@ -474,19 +482,9 @@ class Conferencer_BP_Addon {
 		extract($atts );
 		$p = get_post($id);
 		$post_content = $p->post_content;
-		$session_meta = do_shortcode('[session_meta post_id="'.$id.'" speakers_prefix="Authors: " room_prefix="Room: " type_prefix="Type: " track_prefix="Theme: "]');
+		$session_meta = do_shortcode('[session_meta post_id="'.$id.'" speakers_prefix="Authors: " room_prefix="Room: " type_prefix="Type: " type_suffix="'.$type_suffix.'" track_prefix="Theme: "]');
 		$youtube_id = get_post_meta($id, 'con_live', true);
-		/*$the_excerpt = $p->post_content; //Gets post_content to be used as a basis for the excerpt
-		$excerpt_length = 35; //Sets excerpt length by word count
-		$the_excerpt = strip_tags(strip_shortcodes($the_excerpt)); //Strips tags and images
-		$words = explode(' ', $the_excerpt, $excerpt_length + 1);
-	
-		if(count($words) > $excerpt_length) {
-			array_pop($words);
-			array_push($words, '…');
-			$the_excerpt = implode(' ', $words);
-		}
-		*/
+		$webinar_link = get_post_meta($id, 'con_webinar_link', true);
 		if (!is_admin()){
 			$content = $this->render_calendar($id) . $session_meta.'<div style="clear:both;margin-bottom:10px"></div>';
 		} else {
@@ -503,11 +501,14 @@ class Conferencer_BP_Addon {
 			$content .= '<a class="expander"><i class="fa fa-chevron-down"></i></a></div>';
 		}
 		$content .= '<div class="generic-button back"><a href="#" onclick="window.history.back();return false;"><i class="fa fa-arrow-left"></i> Go Back</a></div>';
+		if ($webinar_link) {
+			$content .= 	'<div class="generic-button back"><a href="'.$webinar_link.'">Join Webinar</a></div>';
+		}
 		return $content;
 	}
 	
 	function render_calendar($id){ 
-		return '<div style="float:right">' . $this->google_calendar_link($id) . $this->ics_calendar_link($id) . '</div>';
+		return '<div class="cal_button">' . $this->google_calendar_link($id) . $this->ics_calendar_link($id) . '</div>';
 	}
 
 	function ics_calendar_link($id){ 
