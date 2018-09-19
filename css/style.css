@@ -20,14 +20,12 @@ padding:0;
 margin-bottom:0px;	
 }
 .agenda td.time_slot {
-width:70px;
 vertical-align:top;	
+padding: 0 5px;
 }
 .agenda td.time_slot .tm {
 position:relative;
 background-color: #fff;
-width: 65px;
-padding-left: 5px;
 }
 .agenda .session {
 border-left: 5px solid #079948;
@@ -132,6 +130,17 @@ color:#888888;
 .agenda .session:hover .session-tooltip {
 display: none;
 }
+.agenda .leave-group, .agenda .join-group {
+	font-family:FontAwesome	!important;
+	font-size:1.2rem !important;
+}
+.agenda .join-group:after {
+	content:"\f271";
+}
+.agenda .leave-group:after {
+	content:"\f272";
+	opacity: .5;	
+}
 .youtube {
 text-align:center;	
 }
@@ -179,16 +188,17 @@ line-height: 1em;
 display:none;	
 }
 .cal_button {
-float:right;	
+float:right;
+display: inline-flex;	
 }
 .agenda .session {
   border-top: 1px solid #EEE;
-  -moz-box-shadow: 2px 2px 5px #888;
-  -webkit-box-shadow: 2px 2px 5px #888;
-  box-shadow: 2px 2px 5px #888;
+  -moz-box-shadow: 1px 1px 2px #888;
+  -webkit-box-shadow: 1px 1px 2px #888;
+  box-shadow: 1px 1px 2px #888;
   padding: 6px;
   background-color: #fff;
-  margin: 4px 0;
+  margin: 3px 3px 3px 0px;
   font-size:95%;
 }
 .expander {
@@ -223,6 +233,10 @@ cursor:pointer;
 	max-height:10000px;
 	transition: max-height 0.75s ease-in;
 }
+#buddypress div#item-header .abstract-text ul li {
+	float:none;
+	list-style:initial;
+}
 .session .islive {
   -moz-border-radius: 4px;
   -webkit-border-radius: 4px;
@@ -235,4 +249,21 @@ cursor:pointer;
   font-weight: 600;
   color: #fff;
   text-transform:capitalize
+}
+i.fa.fa-youtube-square {
+	font-size: 1.5em;
+    color: #cd201f;
+}
+.session i.fa.fa-youtube-square {
+    float: right;
+    padding: 0px 5px;
+    margin-top: -4px;
+	font-size: 2.3em;	
+}
+.agenda .room_col .vert {
+	font-size:0.9em;	
+	line-height: 1em;
+}
+.agenda .room_col .chair {
+    margin-top: 5px;
 }

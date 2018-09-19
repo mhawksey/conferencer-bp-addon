@@ -213,6 +213,9 @@ class Conferencer_BP_Addon {
 	public function includes() {
 		if ( $this->meets_requirements() ) {
 			require_once(sprintf("%s/includes/Conferencer_Shortcode_Agenda_Custom.php", $this->directory_path));
+			require_once(sprintf("%s/includes/Conferencer_Shortcode_Agenda_Custom_Print.php", $this->directory_path));
+			require_once(sprintf("%s/includes/Conferencer_Shortcode_Agenda_Custom_XML.php", $this->directory_path));
+			require_once(sprintf("%s/includes/Conferencer_Shortcode_Agenda_Custom_XML2.php", $this->directory_path));
 		}
 
 		// If BadgeOS is available...
@@ -484,7 +487,8 @@ class Conferencer_BP_Addon {
 		$post_content = $p->post_content;
 		$session_meta = do_shortcode('[session_meta post_id="'.$id.'" speakers_prefix="Authors: " room_prefix="Room: " type_prefix="Type: " type_suffix="'.$type_suffix.'" track_prefix="Theme: "]');
 		$youtube_id = get_post_meta($id, 'con_live', true);
-		$webinar_link = get_post_meta($id, 'con_webinar_link', true);
+		$exclude_instruc = get_post_meta($id, 'con_live_vc', true);
+		$webinar_link = get_post_meta($id, 'con_bb', true);
 		if (!is_admin()){
 			$content = $this->render_calendar($id) . $session_meta.'<div style="clear:both;margin-bottom:10px"></div>';
 		} else {
@@ -492,7 +496,11 @@ class Conferencer_BP_Addon {
 		}
 		
 		if ($youtube_id){
-			$instruc = "";
+			if ($exclude_instruc){
+				$instruc = "&nbsp;";
+			} else {
+				$instruc = "If you've enjoyed this video and are not a Member of ALT <a href='https://altc.alt.ac.uk/2017/join-alt/'>find out more about joining</a>.";
+			}
 			$content .= sprintf('<div class="youtube"><iframe width="540" height="340" src="//www.youtube.com/embed/%s?enablejsapi=1" frameborder="0" allowfullscreen="allowfullscreen"></iframe></div><div class="youtube_info">%s</div>', $youtube_id, $instruc ) ;
 		}
 		if ($post_content !=""){
@@ -502,7 +510,7 @@ class Conferencer_BP_Addon {
 		}
 		$content .= '<div class="generic-button back"><a href="#" onclick="window.history.back();return false;"><i class="fa fa-arrow-left"></i> Go Back</a></div>';
 		if ($webinar_link) {
-			$content .= 	'<div class="generic-button back"><a href="'.$webinar_link.'">Join Webinar</a></div>';
+			$content .= 	'<div class="generic-button webinar-link"><a href="'.$webinar_link.'">Join Webinar</a></div>';
 		}
 		return $content;
 	}
@@ -512,8 +520,8 @@ class Conferencer_BP_Addon {
 	}
 
 	function ics_calendar_link($id){ 
-		$img_url = $this->directory_url . '/images/icons/add-to-calendar.png';
-		return '<div class="calendar_button"><a href="?ical=1&sessionid='.$id.'" title="Download .ics file for your calendar software" onclick="_gaq.push([\'_trackEvent\', \'Calendar\', \'iCal\', \''.$this->get_the_slug($id).'\']);"><img src="'.esc_url($img_url).'" alt="0" border="0" title="Download event details calendar button"></a></div>';
+		$img_url = $this->directory_url . '/images/icons/ics.png';
+		return '<div class="calendar_button"><a href="?ical=1&sessionid='.$id.'" title="Download .ics file for your calendar software" onclick="_gaq.push([\'_trackEvent\', \'Calendar\', \'iCal\', \''.$this->get_the_slug($id).'\']);"><img src="'.esc_url($img_url).'" alt="0" border="0" title="Download event details calendar"></a></div>';
 	}
 	
 	/**
@@ -577,9 +585,10 @@ class Conferencer_BP_Addon {
 		//get the final url
 		$replace = $gcal_url;
 		//if( $result == '#_EVENTGCALLINK' ){
-			$img_url = 'www.google.com/calendar/images/ext/gc_button2.gif';
-			$img_url = is_ssl() ? 'https://'.$img_url:'http://'.$img_url;
-			$replace = '<div class="calendar_button"><a href="'.$replace.'" target="_blank" title="Add to your Google Calendar"  onclick="_gaq.push([\'_trackEvent\', \'Calendar\', \'Google\', \''.$this->get_the_slug($id).'\']);"><img src="'.esc_url($img_url).'" alt="0" border="0" title="Add event to your Google Calendar button"></a></div>';
+			//$img_url = 'www.google.com/calendar/images/ext/gc_button2.gif';
+			$img_url = $this->directory_url . '/images/icons/gcal.png';
+			//$img_url = is_ssl() ? 'https://'.$img_url:'http://'.$img_url;
+			$replace = '<div class="calendar_button"><a href="'.$replace.'" target="_blank" title="Add to your Google Calendar"  onclick="_gaq.push([\'_trackEvent\', \'Calendar\', \'Google\', \''.$this->get_the_slug($id).'\']);"><img src="'.esc_url($img_url).'" alt="0" border="0" title="Add event to your Google Calendar"></a></div>';
 		//}	
 		return $replace;
 	}
@@ -700,7 +709,7 @@ class Conferencer_BP_Addon {
 		//wp_enqueue_script( 'con-jquery-timeago-js', $this->directory_url . '/js/jquery.timeago.js', array( 'jquery' ) );
 		wp_register_script( 'jquery-address', $this->directory_url . '/js/jquery.address-1.5.min.js', array( 'jquery' ));
 		wp_register_script( 'conferencer-addon', $this->directory_url . '/js/conferencer-addon.js', array( 'jquery' ), '1.0.89');
-		wp_register_style( 'conferencer-addon-style', $this->directory_url . '/css/style.css', array( 'dashicons' ), '1.0.59' );
+		wp_register_style( 'conferencer-addon-style', $this->directory_url . '/css/style.css', array( 'dashicons' ), '1.0.60' );
 		wp_register_style( 'conferencer-addon-admin-style', $this->directory_url . '/css/admin-style.css', NULL, '1.0.52' );
 	}
 	
@@ -735,9 +744,9 @@ class Conferencer_BP_Addon {
 			$group = groups_get_group( array( 'group_id' => $gid ) );
 			$group_url = trailingslashit( bp_get_root_domain() . '/' . bp_get_groups_root_slug() . '/' . groups_get_slug($group_id) . '/' );
 			if (groups_is_user_member( $user_id, $group_id )){
-				$buts[$group_id] = '<a id="group-' . esc_attr( $group_id ) . '" class="leave-group" rel="leave" title="' . __( 'Leave Group', 'buddypress' ) . '" href="' . wp_nonce_url( $group_url . 'leave-group', 'groups_leave_group' ) . '">' . __( 'Leave Group', 'buddypress' ) . '</a>';
+				$buts[$group_id] = '<a id="group-' . esc_attr( $group_id ) . '" class="leave-group" rel="leave" title="' . __( 'Leave Group', 'buddypress' ) . '" href="' . wp_nonce_url( $group_url . 'leave-group', 'groups_leave_group' ) . '"></a>';
 			} else {
-				$buts[$group_id] = '<a id="group-' . esc_attr( $group_id ) . '" class="join-group" rel="join" title="' . __( 'Join Group', 'buddypress' ) . '" href="' . wp_nonce_url( $group_url . 'join', 'groups_join_group' ) . '">' . __( 'Join Group', 'buddypress' ) . '</a>';	
+				$buts[$group_id] = '<a id="group-' . esc_attr( $group_id ) . '" class="join-group" rel="join" title="' . __( 'Join Group', 'buddypress' ) . '" href="' . wp_nonce_url( $group_url . 'join', 'groups_join_group' ) . '"></a>';	
 			}
 		}
 

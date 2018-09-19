@@ -1,9 +1,9 @@
 <?php
-new Conferencer_Shortcode_Agenda_Custom();
-class Conferencer_Shortcode_Agenda_Custom extends Conferencer_Shortcode {
-	var $shortcode = 'agendacustom';
+new Conferencer_Shortcode_Agenda_Custom_Print();
+class Conferencer_Shortcode_Agenda_Custom_Print extends Conferencer_Shortcode {
+	var $shortcode = 'agendacustomprint';
 	var $defaults = array(
-		'column_type' => 'track',
+		'row_type' => 'track',
 		'session_tooltips' => true,
 		'session_meta_show' => 'title,type,speakers,room,chair',
 		'speakers_prefix' => 'Authors: ', 
@@ -35,8 +35,8 @@ class Conferencer_Shortcode_Agenda_Custom extends Conferencer_Shortcode {
 	function prep_options() {
 		parent::prep_options();
 		
-		if (!in_array($this->options['column_type'], array('track', 'room', 'type'))) {
-			$this->options['column_type'] = false;
+		if (!in_array($this->options['row_type'], array('track', 'room', 'type'))) {
+			$this->options['row_type'] = false;
 		}
 		
 		if ($this->options['show_empty_cells'] != null) {
@@ -62,17 +62,17 @@ class Conferencer_Shortcode_Agenda_Custom extends Conferencer_Shortcode {
 	
 		// If the agenda is split into columns, fill rows with empty "cell" arrays
 	
-		if ($column_type) {
-			$column_post_counts = array(
+		if ($row_type) {
+			$row_post_counts = array(
 				-1 => 0, // keynotes
 				0 => 0, // unscheduled
 			);
-			$column_posts = Conferencer::get_posts($column_type);
+			$row_posts = Conferencer::get_posts($row_type);
 		
 			foreach ($agenda as $time_slot_id => $time_slot) {
-				foreach ($column_posts as $column_post_id => $column_post) {
-					$column_post_counts[$column_post_id] = 0;
-					$agenda[$time_slot_id][$column_post_id] = array();
+				foreach ($row_posts as $row_post_id => $row_post) {
+					$row_post_counts[$row_post_id] = 0;
+					$agenda[$time_slot_id][$row_post_id] = array();
 				}
 				$agenda[$time_slot_id][0] = array();
 			}
@@ -90,11 +90,11 @@ class Conferencer_Shortcode_Agenda_Custom extends Conferencer_Shortcode {
 		foreach ($sessions as $session) {
 			$time_slot_id = $session->time_slot ? $session->time_slot : 0;
 
-			if ($column_type) {
-				$column_id = $session->$column_type ? $session->$column_type : 0;
-				if ($keynote_spans_tracks && $session->keynote) $column_id = -1;
-				$agenda[$time_slot_id][$column_id][$session->ID] = $session;
-				$column_post_counts[$column_id]++;
+			if ($row_type) {
+				$row_id = $session->$row_type ? $session->$row_type : 0;
+				if ($keynote_spans_tracks && $session->keynote) $row_id = -1;
+				$agenda[$time_slot_id][$row_id][$session->ID] = $session;
+				$row_post_counts[$row_id]++;
 			} else {
 				$agenda[$time_slot_id][$session->ID] = $session;
 			}
@@ -146,24 +146,25 @@ class Conferencer_Shortcode_Agenda_Custom extends Conferencer_Shortcode {
 		
 		// Set up column headers
 	
-		if ($column_type) {
-			$column_headers = array();
+		if ($row_type) {
+			$row_headers = array();
 		
 			// post column headers
-			foreach ($column_posts as $column_post) {
-				if (!$show_empty_columns && in_array($column_post->ID, $empty_column_post_ids)) continue;
+			foreach ($row_posts as $row_post) {
+				if (!$show_empty_columns && in_array($row_post->ID, $empty_column_post_ids)) continue;
 			
-				$column_headers[] = array(
-					'title' => $column_post->post_title,
-					'class' => 'column_'.$column_post->post_name,
-					'link' => $link_columns ? get_permalink($column_post->ID) : false,
+				$row_headers[] = array(
+					'ID' => $row_post->ID,
+					'title' => $row_post->post_title,
+					'class' => $row_type.'_col '.$row_post->post_name,
+					'link' => $link_columns ? get_permalink($row_post->ID) : false,
 				);
 			}
 		
-			if ($show_unassigned_column && count($column_post_counts[0])) {
+			if ($show_unassigned_column && count($row_post_counts[0])) {
 				// extra column header for sessions not assigned to a column
-				$column_headers[] = array(
-					'title' => $unassigned_column_header_text,
+				$row_headers[] = array(
+					'title' => $unassigned_row_header_text,
 					'class' => 'column_not_applicable',
 					'link' => false,
 				);
@@ -183,10 +184,56 @@ class Conferencer_Shortcode_Agenda_Custom extends Conferencer_Shortcode {
 		ob_start();
 	
 		?>
-
+<style type="text/css">
+.agenda .session, .agenda .room_col, .time_slot .vert  {
+font-size:80%;	
+}
+.agenda .room_col .vert {
+  margin-left: -20px;	
+  position: absolute;
+  width: 80px;
+  transform: rotate(-90deg);
+  font-weight:600;
+  -webkit-transform: rotate(-90deg); /* Safari/Chrome */
+  -moz-transform: rotate(-90deg);    /* Firefox */
+  -o-transform: rotate(-90deg);      /* Opera */
+  -ms-transform: rotate(-90deg);     /* IE 9 */	
+}
+.agenda .room_col .chair {
+font-style:italic;
+font-weight:100	
+}
+td.room_col {
+  /*max-width: 60px;*/
+  height: 80px;
+  line-height: 14px;
+  padding-bottom: 22px;
+  text-align: center;
+}
+tr.row{
+min-height:60px;	
+border-top: none;
+border-right: none;
+}
+tr.row:last-child{
+border-bottom: none;
+}
+.type_table{
+margin-bottom:0px;	
+}
+.agenda td {
+/* vertical-align:top;*/	
+}
+.non_session{
+text-align:center;	
+}
+.agenda .leave-group, .agenda .join-group {
+	font-size:100% !important;
+}
+</style>
 <div class="agenda" id="buddypress">
   <?php echo '<script>var defaultDay='.$default_day.';</script>' ?>
-  <?php  echo '<script src="'.plugins_url( 'js/confprog.js?v=53' , dirname(__FILE__) ).'"></script>'; ?>
+  <?php  echo '<script src="'.plugins_url( 'js/confprog.js?v=81' , dirname(__FILE__) ).'"></script>'; ?>
   <div class="agenda-filter">
     <h2>Filters</h2>
   <?php
@@ -197,8 +244,7 @@ class Conferencer_Shortcode_Agenda_Custom extends Conferencer_Shortcode {
 		$filter_out = array();
 		$style ="";
 		if(!empty($filter_posts)){
-			echo ('<h3>'.ucwords($filter).'</h3>');
-			echo ('<div class="filters">');
+
 			foreach ($filter_posts as $filter_post) {
 				$filter_array[$filter_post->ID] = $filter_post->post_title;
 				$filter_type = get_post_meta($filter_post->ID, $filter.'_filter', true);
@@ -215,12 +261,15 @@ class Conferencer_Shortcode_Agenda_Custom extends Conferencer_Shortcode {
 				}
 			}
 			if (!empty($filter_out)){
+				echo ('<h3>'.ucwords($filter).'</h3>');
+				echo ('<div class="filters">');
 				foreach ($filter_out as $filter_name => $filter_values) {
 					echo '<div id="'.$filter.'-'.$filter_name.'"><h4>'.ucwords($filter_name).'</h4>'.$filter_values.'</div>';
 				}
+				echo ('</div>'); // filters
 			}	
 			echo "<style type='text/css'>\n".$style."</style>";
-			echo ('</div>'); // filters
+			
 		}
 	}
 ?>
@@ -239,11 +288,12 @@ class Conferencer_Shortcode_Agenda_Custom extends Conferencer_Shortcode {
       <!-- <?php $tab_idx = 0;
 						   $tab_lkup = array();?> -->
       <?php foreach ($tab_headers as $tab_header) { ?>
-      <?php $tab_idx ++; 
+      <?php  
 								$tab_lkup[get_day($tab_header)] = "day".$tab_idx;?>
       <li>
-        <?php if ($tabs == 'days') { ?>
+        <?php if ($tabs == 'days' && $tab_header) { ?>
         <a href="#day<?php echo $tab_idx; ?>"> <?php echo $tab_header ? date($tab_day_format, $tab_header) : $unscheduled_row_text; ?> </a>
+        <? $tab_idx ++; ?>
         <?php } ?>
       </li>
       <?php } ?>
@@ -274,7 +324,6 @@ class Conferencer_Shortcode_Agenda_Custom extends Conferencer_Shortcode {
     </table>
     <!-- #conferencer_agenda_tab_xxx --> </div>
   <?php } else $second_table = true; ?>
-  <!-- <?php print_r($row_starts);?> -->
   <div id="<?php echo $tab_lkup[get_day($row_starts)]; ?>">
   <div id="scroller-anchor"></div>
     <table class="grid">
@@ -292,42 +341,73 @@ class Conferencer_Shortcode_Agenda_Custom extends Conferencer_Shortcode {
 							if ($non_session) $classes[] = 'non-session';
 							else if ($no_sessions) $classes[] = 'no-sessions';
 						?>
-        <tr<?php output_classes($classes); ?>>
+        <tr <?php output_classes($classes); ?>>
           <?php // Time slot column -------------------------- ?>
-          <td class="time_slot" ><div class="ts"></div><div class="tm"><?php
+          <?php $rowspan = $row_type ? count($row_headers) : 1; ?>
+          <td class="time_slot"><div class="ts"></div><div class="tm"><?php
 									if ($time_slot_id) {
 										$time_slot_link = get_post_meta($time_slot_id, '_conferencer_link', true)
-											OR $time_slot_link = get_permalink($time_slot_id);
+											OR $time_slot_link = false;
+										/*$time_slot_link = get_post_meta($time_slot_id, '_conferencer_link', true)
+											OR $time_slot_link = get_permalink($time_slot_id);*/
 										$html = date($row_time_format, $row_starts);
 										if ($show_row_ends) $html .= " &ndash; ".date($row_time_format, $row_ends);
-										if ($link_time_slots) $html = "<a href='$time_slot_link'>$html</a>";
+										//if ($link_time_slots && $time_slot_link) $html = "<a href='$time_slot_link'>$html</a>";
 										echo $html;
 									}
 								?></div></td>
+           
           <?php // Display session cells --------------------- ?>
           <?php $colspan = $column_type ? count($column_headers) : 1; ?>
           <?php if ($non_session) { // display a non-sessioned time slot ?>
-          <td class="sessions" colspan="<?php echo $colspan; ?>"><p>
+          <td class="sessions" colspan="<?php echo $colspan; ?>"><div class="non_session">
               <?php
 											$html = get_the_title($time_slot_id);
-											if ($link_time_slots) $html = "<a href='$time_slot_link'>$html</a>";
+											$time_slot_link = get_post_meta($time_slot_id, '_conferencer_link', true)
+											OR $time_slot_link = false;
+											if ($link_time_slots && $time_slot_link) $html = "<a href='$time_slot_link'>$html</a>";
 											echo $html;
-										?>
-            </p></td>
+										?></div>
+            </td>
           <?php } else if (isset($cells[-1])) { ?>
             <td class="sessions keynote-sessions" colspan="<?php echo $colspan; ?>"><?php
 										foreach ($cells[-1] as $session) {
 											$this->display_session($session);
 										}
 									?></td>
-            <?php } else if ($column_type) { // if split into columns, multiple cells  ?>
-            <?php foreach ($cells as $cell_sessions) { ?>
-            <td class="sessions <?php if (empty($cell_sessions)) echo 'no-sessions'; ?>"><?php
-											foreach ($cell_sessions as $session) {
-												$this->display_session($session);
-											}
-										?></td>
+            <?php } else if ($row_type) { // if split into rows, multiple cells  ?>
+         	<td><table class="type_table">
+            <?php foreach ($row_headers as $row_header) {?>
+            	
+            	<?php 
+				$do_rows = Array();
+				foreach ($cells as $cell_sessions) { 
+					foreach ($cell_sessions as $session) {
+						if ($row_header['ID'] == $session->$row_type){
+							
+							$do_rows[] = $session;
+						}
+					}
+				}
+				?>
+                
+            <?php if (!empty($do_rows)) {?>
+                <tr class="row">
+                <td width="40" class="<?php echo $row_header['class']; ?>"><div  class="vert room"><?php
+                                $html = $row_header['title'];
+                                if ($row_header['link']) $html = "<a href='".$row_header['link']."'>$html</a>";
+                                echo $html;
+								echo "<div class='chair'>".str_replace(" ", "&nbsp;", get_the_title($do_rows[0]->chair))."</div>";
+                            ?></div>
+                </td>
+                <td class="sessions">
+                <?php foreach ($do_rows as $do_row) { ?>
+                <?php 	$this->display_session($do_row); ?>
+                <?php } ?> </td>
+                    </tr>
+           		 <?php } // end $do_row?>
             <?php } ?>
+            </table></td>
           <?php } else { // all sessions in one cell ?>
           <td class="sessions <?php if (empty($cells)) echo 'no-sessions'; ?>"><?php
 										foreach ($cells as $session) {
@@ -418,7 +498,7 @@ class Conferencer_Shortcode_Agenda_Custom extends Conferencer_Shortcode {
 				echo'<div class="generic-button webinar-button"><a href="'.$webinar_link.'">Join Webinar</a></div>';
 		}*/
 	?>
-  <?php if (get_post_meta($session->ID, 'con_live', true)) echo '<div class="islive">Live Streamed</div>'; ?>
+  <?php if (get_post_meta($session->ID, 'con_live', true)) echo '<a href="'.esc_url( get_permalink($session->ID)).'"><i class="fa fa-youtube-square" aria-hidden="true"></i></a>'; ?>
   <?php echo do_shortcode("
 				[session_meta
 					post_id='$session->ID' 
