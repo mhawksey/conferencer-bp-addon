@@ -106,7 +106,12 @@ function render_cal_event($id){
 	//formats
 	$summary = ical_escape_text($post->post_title);
 	$permalink = get_permalink($id);
-	$altdescription = do_shortcode("[session_meta
+	$youtube_id = get_post_meta($id, 'con_live', true);
+	$altdescription = "";
+	if ($youtube_id){
+		$altdescription = "YouTube: https://www.youtube.com/watch?v=".$youtube_id." \r\n";
+	}
+	$altdescription .= do_shortcode("[session_meta
 								post_id='$post->ID'
 								show='room,track'
 								room_prefix='Room: '

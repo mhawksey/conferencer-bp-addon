@@ -495,8 +495,9 @@ text-align:center;
 							chair_prefix='".$chair_prefix."'  
 							link_title=".($link_sessions ? 'true' : 'false')." 
 							link_speakers=".($link_speakers ? 'true' : 'false')." 
-							link_room=".($link_rooms ? 'true' : 'false')." 	]")));				
-			$html ='<SessionType'.(($session->track) ? preg_replace('/[^\w]/', '', html_entity_decode(get_the_title($session->track))) : 'Non').' aid:table="cell" aid:crows="1" aid:ccols="1" aid:ccolwidth="133.635"><Session><SessionTitle>'.htmlspecialchars(get_the_title($session->ID),ENT_XHTML, 'ISO-8859-1').'</SessionTitle> '. htmlspecialchars($session_meta, ENT_XHTML).'</Session></SessionType'.(($session->track) ? preg_replace('/[^\w]/', '', html_entity_decode(get_the_title($session->track))) : 'Non').'>';
+							link_room=".($link_rooms ? 'true' : 'false')." 	]")));
+			$colorCode = ($session->track) ? ltrim(get_post_meta($session->track, 'track_color', true),'#') : 'Non';
+			$html ='<SessionType'.$colorCode.' aid:table="cell" aid:crows="1" aid:ccols="1" aid:ccolwidth="133.635"><Session><SessionTitle>'.htmlspecialchars(get_the_title($session->ID),ENT_XHTML, 'ISO-8859-1').'</SessionTitle> '. htmlspecialchars($session_meta, ENT_XHTML).'</Session></SessionType'.$colorCode.'>';
 						
 			return $html;?>
 		<?php } else { //is keynote ?>

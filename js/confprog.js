@@ -2,6 +2,7 @@ var jq = jQuery,
     hashparts;
 
 jq(document).on('click', 'div.group-button a', function() {
+	jq(this).addClass('busy');
     var gid = jq(this).parent().attr('id');
     gid = gid.split('-');
     gid = gid[1];
@@ -36,6 +37,7 @@ jq(document).on('click', 'div.group-button a', function() {
                     	but.text('');
                     }*/
                     parentdiv.fadeIn(200);
+					//jq(this).removeClass('busy');
                 }
             );
         });

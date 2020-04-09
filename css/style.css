@@ -137,6 +137,32 @@ display: none;
 .agenda .join-group:after {
 	content:"\f271";
 }
+.agenda .join-group.busy:after {
+	content:"\f110";
+	webkit-animation: load2 2s infinite ease;
+	animation: load2 2s infinite ease;
+}
+@-webkit-keyframes load2 {
+  0% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+@keyframes load2 {
+  0% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+
 .agenda .leave-group:after {
 	content:"\f272";
 	opacity: .5;	
@@ -266,4 +292,8 @@ i.fa.fa-youtube-square {
 }
 .agenda .room_col .chair {
     margin-top: 5px;
+}
+img.ultra {
+    float: right;
+    padding-right: 5px;
 }

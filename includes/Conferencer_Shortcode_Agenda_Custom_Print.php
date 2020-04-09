@@ -285,15 +285,15 @@ text-align:center;
   <?php if ($tabs) { ?>
   <div class="conferencer_tabs">
     <ul class="tabs">
-      <!-- <?php $tab_idx = 0;
-						   $tab_lkup = array();?> -->
+      <?php $tab_idx = 1;
+		    $tab_lkup = array(); ?>
       <?php foreach ($tab_headers as $tab_header) { ?>
       <?php  
 								$tab_lkup[get_day($tab_header)] = "day".$tab_idx;?>
       <li>
         <?php if ($tabs == 'days' && $tab_header) { ?>
         <a href="#day<?php echo $tab_idx; ?>"> <?php echo $tab_header ? date($tab_day_format, $tab_header) : $unscheduled_row_text; ?> </a>
-        <? $tab_idx ++; ?>
+        <?php $tab_idx++; ?>
         <?php } ?>
       </li>
       <?php } ?>
@@ -499,6 +499,7 @@ text-align:center;
 		}*/
 	?>
   <?php if (get_post_meta($session->ID, 'con_live', true)) echo '<a href="'.esc_url( get_permalink($session->ID)).'"><i class="fa fa-youtube-square" aria-hidden="true"></i></a>'; ?>
+  <?php if (get_post_meta($session->ID, 'con_bb', true)) echo '<a href="'.esc_url( get_permalink($session->ID)).'"><img class="ultra" src="'.plugins_url( 'images/icons/ultra-16px.png' , dirname(__FILE__) ).'" alt="Webinar"/></a>'; ?>
   <?php echo do_shortcode("
 				[session_meta
 					post_id='$session->ID' 

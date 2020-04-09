@@ -486,7 +486,7 @@ text-align:center;
 		$group_id = get_post_meta($session->ID, 'con_group', true);
 		if (!$is_keynote) {
 			
-			$html ='<SessionType'.(($session->track) ? get_the_title($session->track) : 'Non').' aid:table="cell" aid:crows="1" aid:ccols="1" aid:ccolwidth="227.97244094547244"><Session><SessionTitle>'.htmlspecialchars(get_the_title($session->ID), ENT_XML1).'</SessionTitle> '. htmlspecialchars(trim(strip_tags (do_shortcode("
+			$html ='<SessionType'.(($session->track) ? str_replace(array('&#038;', '/', '//', ' '), '', get_the_title($session->track)) : 'Non').' aid:table="cell" aid:crows="1" aid:ccols="1" aid:ccolwidth="227.97244094547244"><Session><SessionTitle>'.htmlspecialchars(get_the_title($session->ID), ENT_XML1).'</SessionTitle> '. htmlspecialchars(trim(strip_tags (do_shortcode("
 						[session_meta
 							post_id='$session->ID' 
 							show='speakers' 
@@ -497,7 +497,7 @@ text-align:center;
 							link_title=".($link_sessions ? 'true' : 'false')." 
 							link_speakers=".($link_speakers ? 'true' : 'false')." 
 							link_room=".($link_rooms ? 'true' : 'false')." 
-						]"))), ENT_XML1).'</Session></SessionType'.(($session->track) ? get_the_title($session->track) : 'Non').'>';
+						]"))), ENT_XML1).'</Session></SessionType'.(($session->track) ? str_replace(array('&#038;', '/', '//', ' '), '', get_the_title($session->track)) : 'Non').'>';
 						
 			return $html;?>
 		<?php } else { //is keynote ?>
@@ -556,7 +556,7 @@ text-align:center;
 							link_title=".($link_sessions ? 'true' : 'false')." 
 							link_speakers=".($link_speakers ? 'true' : 'false')." 
 							link_room=".($link_rooms ? 'true' : 'false')." 
-						]"))), ENT_XML1);	?></Session></SessionType_<?php if ($session->track) echo(get_the_title($session->track));?>>
+						]"))), ENT_XML1);	?></Session></SessionType_><?php if ($session->track) echo(get_the_title($session->track));?>>
 		<?php } else { //is keynote ?>
         	<Session><?php echo htmlspecialchars(get_the_title($session->ID), ENT_XML1);?></Session>
         <?php } ?>

@@ -487,8 +487,10 @@ class Conferencer_BP_Addon {
 		$post_content = $p->post_content;
 		$session_meta = do_shortcode('[session_meta post_id="'.$id.'" speakers_prefix="Authors: " room_prefix="Room: " type_prefix="Type: " type_suffix="'.$type_suffix.'" track_prefix="Theme: "]');
 		$youtube_id = get_post_meta($id, 'con_live', true);
+		$drive_id = get_post_meta($id, 'con_drive', true);
 		$exclude_instruc = get_post_meta($id, 'con_live_vc', true);
 		$webinar_link = get_post_meta($id, 'con_bb', true);
+		$webinar_rec_link = get_post_meta($id, 'con_bb_rec', true);
 		if (!is_admin()){
 			$content = $this->render_calendar($id) . $session_meta.'<div style="clear:both;margin-bottom:10px"></div>';
 		} else {
@@ -501,7 +503,10 @@ class Conferencer_BP_Addon {
 			} else {
 				$instruc = "If you've enjoyed this video and are not a Member of ALT <a href='https://altc.alt.ac.uk/2017/join-alt/'>find out more about joining</a>.";
 			}
-			$content .= sprintf('<div class="youtube"><iframe width="540" height="340" src="//www.youtube.com/embed/%s?enablejsapi=1" frameborder="0" allowfullscreen="allowfullscreen"></iframe></div><div class="youtube_info">%s</div>', $youtube_id, $instruc ) ;
+			$content .= sprintf('<div class="youtube"><iframe width="540" height="340" src="//www.youtube.com/embed/%s" frameborder="0" allowfullscreen="allowfullscreen"></iframe></div><div class="youtube_info">%s</div>', $youtube_id, $instruc ) ;
+		}
+		if ($drive_id){
+			$content .= sprintf('<div class="youtube"><iframe src="https://drive.google.com/file/d/%s/preview" width="640" height="480" frameborder="0" allowfullscreen="allowfullscreen"></iframe></div><div class="youtube_info">%s</div>', $drive_id, $instruc ) ;
 		}
 		if ($post_content !=""){
 			$content .= '<div class="session-abstract"><h3>Description<a name="abstract"></a></h3>';
@@ -509,8 +514,11 @@ class Conferencer_BP_Addon {
 			$content .= '<a class="expander"><i class="fa fa-chevron-down"></i></a></div>';
 		}
 		$content .= '<div class="generic-button back"><a href="#" onclick="window.history.back();return false;"><i class="fa fa-arrow-left"></i> Go Back</a></div>';
-		if ($webinar_link) {
+		if ($webinar_link && !$webinar_rec_link) {
 			$content .= 	'<div class="generic-button webinar-link"><a href="'.$webinar_link.'">Join Webinar</a></div>';
+		}
+		if ($webinar_rec_link) {
+			$content .= 	'<div class="generic-button webinar-link"><a href="'.$webinar_rec_link.'">Watch Recording</a></div>';
 		}
 		return $content;
 	}
