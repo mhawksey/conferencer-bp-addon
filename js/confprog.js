@@ -1,8 +1,8 @@
-var jq = jQuery,
-    hashparts;
+
+var jq = jQuery.noConflict();
+var hashparts;
 
 jq(document).on('click', 'div.group-button a', function() {
-	jq(this).addClass('busy');
     var gid = jq(this).parent().attr('id');
     gid = gid.split('-');
     gid = gid[1];
@@ -37,14 +37,13 @@ jq(document).on('click', 'div.group-button a', function() {
                     	but.text('');
                     }*/
                     parentdiv.fadeIn(200);
-					//jq(this).removeClass('busy');
                 }
             );
         });
     return false;
 });
 
-jq(document).ready(function() {
+jq(function( $ ) {
     moveScroller();
 
     jq('.myicalfeed a').click(function(e) {

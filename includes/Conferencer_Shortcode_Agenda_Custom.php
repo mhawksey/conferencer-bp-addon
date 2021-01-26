@@ -27,6 +27,7 @@ class Conferencer_Shortcode_Agenda_Custom extends Conferencer_Shortcode {
 		'link_columns' => true,
 		'unassigned_column_header_text' => 'N/A',
 		'unscheduled_row_text' => 'Unscheduled',
+		'default_day' => 1
 	);
 	
 	var $buttons = array('agenda');
@@ -184,6 +185,7 @@ class Conferencer_Shortcode_Agenda_Custom extends Conferencer_Shortcode {
 		?>
 
 <div class="agenda" id="buddypress">
+  <?php echo '<script>var defaultDay='.$default_day.';</script>' ?>
   <?php  echo '<script src="'.plugins_url( 'js/confprog.js?v=53' , dirname(__FILE__) ).'"></script>'; ?>
   <div class="agenda-filter">
     <h2>Filters</h2>
@@ -222,7 +224,7 @@ class Conferencer_Shortcode_Agenda_Custom extends Conferencer_Shortcode {
 		}
 	}
 ?>
-    <h3>Followed Sessions</h3>
+    <h3>Your Followed Sessions</h3>
     <div class="myical generic-button public" style="display:none"><a href="?ical=download">Download all my sessions (.ics)</a></div>
     <div class="myicalfeed generic-button public" style="display:none"><a href="?ical=feed">Subscribe to my sessions (.ics)</a>
       <div id="myicalurlbox" style="display:none"><input onClick="this.setSelectionRange(0, 9999)" type="text" id="myicalurl" /> Copy and paste the url in the box into your calendar software </div>
@@ -234,11 +236,12 @@ class Conferencer_Shortcode_Agenda_Custom extends Conferencer_Shortcode {
   <?php if ($tabs) { ?>
   <div class="conferencer_tabs">
     <ul class="tabs">
-      <!-- <?php $tab_idx = 0;
-						   $tab_lkup = array();?> -->
-      <?php foreach ($tab_headers as $tab_header) { ?>
-      <?php $tab_idx ++; 
-								$tab_lkup[get_day($tab_header)] = "day".$tab_idx;?>
+      <?php $tab_idx = 0;
+		$tab_lkup = array();?>
+      <?php foreach ($tab_headers as $tab_header) { 
+				$tab_idx++; 
+				$tab_lkup[get_day($tab_header)] = "day".$tab_idx;
+		?>
       <li>
         <?php if ($tabs == 'days') { ?>
         <a href="#day<?php echo $tab_idx; ?>"> <?php echo $tab_header ? date($tab_day_format, $tab_header) : $unscheduled_row_text; ?> </a>

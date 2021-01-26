@@ -43,6 +43,14 @@ jQuery(document).ready(function(jq) {
 			//tip.slideUp(); 
 		}	
 	});
+	var display_name = jq("#wp-admin-bar-my-account .display-name:first").text();
+	var webinar_link = jq("#item-meta .webinar-link a").attr("href");
+	if((display_name && display_name.length > 4) && webinar_link){
+		console.log("Updating link")
+		jq("#item-meta .webinar-link a").attr("href", webinar_link+"?guestName="+encodeURI(display_name));
+		jq("#item-meta .webinar-link a").attr("target", "_blank");
+	}
+	
 });
 
 // JavaScript Document

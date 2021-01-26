@@ -1,7 +1,7 @@
 <?php
-new Conferencer_Shortcode_Agenda_Custom_XML();
-class Conferencer_Shortcode_Agenda_Custom_XML extends Conferencer_Shortcode {
-	var $shortcode = 'agendacustomxml';
+new Conferencer_Shortcode_Agenda_Custom_Print();
+class Conferencer_Shortcode_Agenda_Custom_Print extends Conferencer_Shortcode {
+	var $shortcode = 'agendacustomprint';
 	var $defaults = array(
 		'row_type' => 'track',
 		'session_tooltips' => true,
@@ -27,6 +27,7 @@ class Conferencer_Shortcode_Agenda_Custom_XML extends Conferencer_Shortcode {
 		'link_columns' => true,
 		'unassigned_column_header_text' => 'N/A',
 		'unscheduled_row_text' => 'Unscheduled',
+		'default_day' => 1
 	);
 	
 	var $buttons = array('agenda');
@@ -179,31 +180,34 @@ class Conferencer_Shortcode_Agenda_Custom_XML extends Conferencer_Shortcode {
 		if (deep_empty($agenda[0])) unset($agenda[0]);
 
 		// Start buffering output
-		
-		
 
 		ob_start();
 	
 		?>
 <style type="text/css">
-.agenda .session, .agenda .room_col, .time_slot div  {
+.agenda .session, .agenda .room_col, .time_slot .vert  {
 font-size:80%;	
 }
-.agenda .room_col div {
-  margin-left: -15px;
+.agenda .room_col .vert {
+  margin-left: -20px;	
   position: absolute;
-  width: 60px;
+  width: 80px;
   transform: rotate(-90deg);
+  font-weight:600;
   -webkit-transform: rotate(-90deg); /* Safari/Chrome */
   -moz-transform: rotate(-90deg);    /* Firefox */
   -o-transform: rotate(-90deg);      /* Opera */
   -ms-transform: rotate(-90deg);     /* IE 9 */	
 }
+.agenda .room_col .chair {
+font-style:italic;
+font-weight:100	
+}
 td.room_col {
-  max-width: 50px;
-  height: 60px;
+  /*max-width: 60px;*/
+  height: 80px;
   line-height: 14px;
-  padding-bottom: 15px;
+  padding-bottom: 22px;
   text-align: center;
 }
 tr.row{
@@ -228,7 +232,8 @@ text-align:center;
 }
 </style>
 <div class="agenda" id="buddypress">
-  <?php  echo '<script src="'.plugins_url( 'js/confprog.js?v=53' , dirname(__FILE__) ).'"></script>'; ?>
+  <?php echo '<script>var defaultDay='.$default_day.';</script>' ?>
+  <?php  echo '<script src="'.plugins_url( 'js/confprog.js?v=81' , dirname(__FILE__) ).'"></script>'; ?>
   <div class="agenda-filter">
     <h2>Filters</h2>
   <?php
@@ -280,14 +285,16 @@ text-align:center;
   <?php if ($tabs) { ?>
   <div class="conferencer_tabs">
     <ul class="tabs">
-      <!-- <?php $tab_idx = 0;
-						   $tab_lkup = array();?> -->
+      <?php $tab_idx = 1;
+		    $tab_lkup = array(); ?>
       <?php foreach ($tab_headers as $tab_header) { ?>
-      <?php $tab_idx ++; 
+      <?php  
 								$tab_lkup[get_day($tab_header)] = "day".$tab_idx;?>
       <li>
-        <?php if ($tabs == 'days') { ?>
+        <?php //if ($tabs == 'days' && $tab_header) {
+			if ($tabs == 'days') { ?>
         <a href="#day<?php echo $tab_idx; ?>"> <?php echo $tab_header ? date($tab_day_format, $tab_header) : $unscheduled_row_text; ?> </a>
+        <?php $tab_idx++; ?>
         <?php } ?>
       </li>
       <?php } ?>
@@ -297,13 +304,11 @@ text-align:center;
       <?php if ($column_type) $this->display_headers($column_headers); ?>
       <tbody>
         <?php } ?>
-        <?php $row_starts = $last_row_starts = $second_table = false; 
-		$rowidx=0;
-		$xml = Array();?>
+        <?php $row_starts = $last_row_starts = $second_table = false; ?>
         <?php foreach ($agenda as $time_slot_id => $cells) { ?>
         <?php
 							// Set up row information
-					        
+					
 							$last_row_starts = $row_starts;
 							$row_starts = get_post_meta($time_slot_id, '_conferencer_starts', true);
 							$row_ends = get_post_meta($time_slot_id, '_conferencer_ends', true);
@@ -316,17 +321,15 @@ text-align:center;
 							if ($show_next_day) { ?>
         <?php if ($tabs) { ?>
         <?php if ($second_table) { ?>
-    
-    <!-- #conferencer_agenda_tab_xxx --> <textarea><?php $rowidx=0; $this->render_xml($xml); $xml = Array(); ?></textarea></div>
+      </tbody>
+    </table>
+    <!-- #conferencer_agenda_tab_xxx --> </div>
   <?php } else $second_table = true; ?>
   <div id="<?php echo $tab_lkup[get_day($row_starts)]; ?>">
-  
   <div id="scroller-anchor"></div>
-  
-  
-  
+    <table class="grid">
       <?php if ($column_type) $this->display_headers($column_headers); ?>
-      
+      <tbody>
         <?php } else { ?>
         <tr class="day">
           <td colspan="<?php echo $column_type ? count($column_headers) + 1 : 2; ?>"><?php echo $row_starts ? date($row_day_format, $row_starts) : $unscheduled_row_text; ?></td>
@@ -339,48 +342,42 @@ text-align:center;
 							if ($non_session) $classes[] = 'non-session';
 							else if ($no_sessions) $classes[] = 'no-sessions';
 						?>
-        
+        <tr <?php output_classes($classes); ?>>
           <?php // Time slot column -------------------------- ?>
-          <?php $rowspan = $row_type ? count($row_headers) : 1; 
-		  // $xml[$rowidx]  ?>           
+          <?php $rowspan = $row_type ? count($row_headers) : 1; ?>
+          <td class="time_slot"><div class="ts"></div><div class="tm"><?php
+									if ($time_slot_id) {
+										$time_slot_link = get_post_meta($time_slot_id, '_conferencer_link', true)
+											OR $time_slot_link = false;
+										/*$time_slot_link = get_post_meta($time_slot_id, '_conferencer_link', true)
+											OR $time_slot_link = get_permalink($time_slot_id);*/
+										$html = date($row_time_format, $row_starts);
+										if ($show_row_ends) $html .= " &ndash; ".date($row_time_format, $row_ends);
+										//if ($link_time_slots && $time_slot_link) $html = "<a href='$time_slot_link'>$html</a>";
+										echo $html;
+									}
+								?></div></td>
+           
           <?php // Display session cells --------------------- ?>
           <?php $colspan = $column_type ? count($column_headers) : 1; ?>
-          <?php
-                        if ($time_slot_id) {
-                            $time_slot_link = get_post_meta($time_slot_id, '_conferencer_link', true)
-                                OR $time_slot_link = get_permalink($time_slot_id);
-                            $html = date($row_time_format, $row_starts);
-                            if ($show_row_ends) $html .= " &ndash; ".date($row_time_format, $row_ends);
-                            if ($link_time_slots) $html = "<a href='$time_slot_link'>$html</a>";
-                            //echo $html;
-							$xml[$rowidx]['time'] = $html;
-							$xml[$rowidx]['rows'] = 0;
-							
-							
-                        }
-                        
-                    ?>
-          <?php if ($non_session) { // display a non-sessioned time slot  ?>
-        
-<?php
-											$html = htmlspecialchars(get_the_title($time_slot_id), ENT_XML1);
-											if ($link_time_slots) $html = "$html";
-											//echo $html;
-										?>
-          <?php	$xml[$rowidx]['rooms']['no_name'] = Array('<Cell aid:table="cell" aid:crows="1" aid:ccols="1" aid:ccolwidth="227.97244094547244"><Session>'.$html.'</Session></Cell>'); ?>
-          <?php $xml[$rowidx]['rows']++ ?>
+          <?php if ($non_session) { // display a non-sessioned time slot ?>
+          <td class="sessions" colspan="<?php echo $colspan; ?>"><div class="non_session">
+              <?php
+											$html = get_the_title($time_slot_id);
+											$time_slot_link = get_post_meta($time_slot_id, '_conferencer_link', true)
+											OR $time_slot_link = false;
+											if ($link_time_slots && $time_slot_link) $html = "<a href='$time_slot_link'>$html</a>";
+											echo $html;
+										?></div>
+            </td>
           <?php } else if (isset($cells[-1])) { ?>
-         
-            <?php
+            <td class="sessions keynote-sessions" colspan="<?php echo $colspan; ?>"><?php
 										foreach ($cells[-1] as $session) {
-											//$this->display_session($session, true);
+											$this->display_session($session);
 										}
-									?>
-               
-          <?php	$xml[$rowidx]['rooms']['no_name'] = Array('<Cell aid:table="cell" aid:crows="1" aid:ccols="1" aid:ccolwidth="227.97244094547244"><Session>'.htmlspecialchars(get_the_title($session->ID), ENT_XML1).'</Session></Cell>'); ?>
-            <?php $xml[$rowidx]['rows']++ ?>                
+									?></td>
             <?php } else if ($row_type) { // if split into rows, multiple cells  ?>
-         	
+         	<td><table class="type_table">
             <?php foreach ($row_headers as $row_header) {?>
             	
             	<?php 
@@ -396,31 +393,38 @@ text-align:center;
 				?>
                 
             <?php if (!empty($do_rows)) {?>
-
-                            
-                <?php $xml[$rowidx]['rooms'][$row_header['title']] = Array(); ?>
+                <tr class="row">
+                <td width="40" class="<?php echo $row_header['class']; ?>"><div  class="vert room"><?php
+                                $html = $row_header['title'];
+                                if ($row_header['link']) $html = "<a href='".$row_header['link']."'>$html</a>";
+								echo $html;
+								if ($do_rows[0]->chair) echo "<div class='chair'>".str_replace(" ", "&nbsp;", get_the_title($do_rows[0]->chair))."</div>";
+                            ?></div>
+                </td>
+                <td class="sessions">
                 <?php foreach ($do_rows as $do_row) { ?>
-                <?php 	//$this->display_session($do_row); ?>
-                <?php $xml[$rowidx]['rooms'][$row_header['title']][] = $this->get_session($do_row); ?>
-                <?php $xml[$rowidx]['rows']++ ?>
-                <?php } ?> 
+                <?php 	$this->display_session($do_row); ?>
+                <?php } ?> </td>
+                    </tr>
            		 <?php } // end $do_row?>
             <?php } ?>
-            
+            </table></td>
           <?php } else { // all sessions in one cell ?>
-         
+          <td class="sessions <?php if (empty($cells)) echo 'no-sessions'; ?>"><?php
+										foreach ($cells as $session) {
+											$this->display_session($session);
+										}
+									?></td>
           <?php } ?>
-        <?php $rowidx++; ?>
+        </tr>
         <?php } ?>
-
-   
+      </tbody>
+    </table>
     <?php if ($tabs) { ?>
-    <textarea><?php $rowidx=0; $this->render_xml($xml); ?><!-- #conferencer_agenda_tab_xxx --></textarea> </div>
-   
+    <!-- #conferencer_agenda_tab_xxx --> </div>
 </div>
 <!-- .conferencer_agenda_tabs -->
 <?php } ?>
-
 </div>
 <!-- .agenda -->
 
@@ -475,7 +479,7 @@ text-align:center;
 		return apply_filters('wp_trim_excerpt', $content, $raw_content);
 	}
 	
-	function get_session($session , $is_keynote = false) {
+	function display_session($session) {
 		//print_r($session);
 		if (function_exists('conferencer_agenda_display_session')) {
 			conferencer_agenda_display_session($session, $this->options);
@@ -484,82 +488,38 @@ text-align:center;
 
 		extract($this->options);
 		$group_id = get_post_meta($session->ID, 'con_group', true);
-		if (!$is_keynote) {
-			
-			$html ='<SessionType'.(($session->track) ? get_the_title($session->track) : 'Non').' aid:table="cell" aid:crows="1" aid:ccols="1" aid:ccolwidth="227.97244094547244"><Session><SessionTitle>'.htmlspecialchars(get_the_title($session->ID), ENT_XML1).'</SessionTitle> '. htmlspecialchars(trim(strip_tags (do_shortcode("
-						[session_meta
-							post_id='$session->ID' 
-							show='speakers' 
-							speakers_prefix='".$speakers_prefix."'  
-							room_prefix='".$room_prefix."' 
-							type_prefix='".$type_prefix."'  
-							chair_prefix='".$chair_prefix."'  
-							link_title=".($link_sessions ? 'true' : 'false')." 
-							link_speakers=".($link_speakers ? 'true' : 'false')." 
-							link_room=".($link_rooms ? 'true' : 'false')." 
-						]"))), ENT_XML1).'</Session></SessionType'.(($session->track) ? get_the_title($session->track) : 'Non').'>';
-						
-			return $html;?>
-		<?php } else { //is keynote ?>
-        	<Session><?php echo htmlspecialchars(get_the_title($session->ID), ENT_XML1);?></Session>
-        <?php } ?>
-
-<?php }	
-	
-	function render_xml($xml){
-		$out = "";
-		//print_r($xml);
-		foreach ($xml as $slot){
-			$out .= '<Cell aid:table="cell" aid:crows="'.$slot['rows'].'" aid:ccols="1" aid:ccolwidth="22.17716535433067"><Time>'.$slot['time'].'</Time></Cell>';
-			//$out .= '<Cell aid:table="cell" aid:crows="1" aid:ccols="1" aid:ccolwidth="22.17716535433067"><Time>'.$slot['time'].'</Time></Cell>';
-			$total_rows = $total_rows + $slot['rows'];
-			foreach ($slot['rooms'] as $room_name => $room){
-				if ($room_name == 'no_name'){
-					$out .= '<Cell aid:table="cell" aid:crows="1" aid:ccols="1" aid:ccolwidth="15.307086612992066"> </Cell>';
-					$out .= $room[0];
-				} else {
-					$out .= '<Cell aid:table="cell" aid:crows="'.count($room).'" aid:ccols="1" aid:ccolwidth="15.307086612992066"><Room>'.$room_name.'</Room></Cell>';
-					//$out .= '<Cell aid:table="cell" aid:crows="1" aid:ccols="1" aid:ccolwidth="15.307086612992066"><Room>'.$room_name.'</Room></Cell>';
-					$out .= implode('', $room);
-				}
-				
-			}
-		}
-		
-		$table = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Root><Story>';
-		$table .= '<Table xmlns:aid="http://ns.adobe.com/AdobeInDesign/4.0/" aid:table="table" aid:trows="'.$total_rows.'" aid:tcols="3">';
-		$table .= $out;
-		$table .= '</Table></Story></Root>';
-		
-		echo $table;
-	}
-	
-	
-	function display_session($session , $is_keynote = false) {
-		//print_r($session);
-		if (function_exists('conferencer_agenda_display_session')) {
-			conferencer_agenda_display_session($session, $this->options);
-			return;
-		}
-
-		extract($this->options);
-		$group_id = get_post_meta($session->ID, 'con_group', true);
-		if (!$is_keynote) {
-			?><SessionType_<?php if ($session->track) echo(get_the_title($session->track));?>  aid:table="cell" aid:crows="1" aid:ccols="1" aid:ccolwidth="227.97244094547244"><Session><SessionTitle><?php echo htmlspecialchars(get_the_title($session->ID), ENT_XML1);?></SessionTitle><?php echo htmlspecialchars(trim(strip_tags (do_shortcode("
-						[session_meta
-							post_id='$session->ID' 
-							show='speakers' 
-							speakers_prefix='".$speakers_prefix."'  
-							room_prefix='".$room_prefix."' 
-							type_prefix='".$type_prefix."'  
-							chair_prefix='".$chair_prefix."'  
-							link_title=".($link_sessions ? 'true' : 'false')." 
-							link_speakers=".($link_speakers ? 'true' : 'false')." 
-							link_room=".($link_rooms ? 'true' : 'false')." 
-						]"))), ENT_XML1);	?></Session></SessionType_<?php if ($session->track) echo(get_the_title($session->track));?>>
-		<?php } else { //is keynote ?>
-        	<Session><?php echo htmlspecialchars(get_the_title($session->ID), ENT_XML1);?></Session>
-        <?php } ?>
-
+		?>
+<a name="sessionid<?php echo $group_id ;?>"></a>
+<div class="session <?php if ($session->track) echo " track-".Conferencer_BP_Addon::get_the_slug($session->track); 
+						  if ($session->type) echo " type-".Conferencer_BP_Addon::get_the_slug($session->type);?>" group-id="<?php echo $group_id ;?>">
+  <?php if ( has_post_thumbnail($session->ID) ) echo get_the_post_thumbnail( $session->ID, 'full', array( 'class' => 'alignleft','style' =>'margin:5px;' ) ); ?>				  
+  <div class="generic-button group-button prog public" id="groupbutton-<?php echo $group_id ;?>" style="display:none"></div>
+    <?php 
+		/*$webinar_link = get_post_meta($session->ID, 'con_webinar_link', true);
+		if ($webinar_link) {
+				echo'<div class="generic-button webinar-button"><a href="'.$webinar_link.'">Join Webinar</a></div>';
+		}*/
+	?>
+  <?php if (get_post_meta($session->ID, 'con_live', true)) echo '<a href="'.esc_url( get_permalink($session->ID)).'"><i class="fa fa-youtube-square" aria-hidden="true"></i></a>'; ?>
+  <?php echo do_shortcode("
+				[session_meta
+					post_id='$session->ID' 
+					show='".$session_meta_show."' 
+					speakers_prefix='".$speakers_prefix."'  
+					room_prefix='".$room_prefix."' 
+					type_prefix='".$type_prefix."'  
+					chair_prefix='".$chair_prefix."'  
+					link_title=".($link_sessions ? 'true' : 'false')." 
+					link_speakers=".($link_speakers ? 'true' : 'false')." 
+					link_room=".($link_rooms ? 'true' : 'false')." 
+				]");	?>
+  <?php if ($session_tooltips) { ?>
+  <div class="session-ex">
+    <div class="session-ex-text" style="display:none"> <?php echo do_shortcode("[session_meta post_id='$session->ID' show='time' link_all=false]"); ?>
+      <p class="excerpt"><?php echo $this->generate_agenda_excerpt($session); ?></p>
+    </div>
+    <a class="expander"><i class="fa fa-chevron-down"></i></a> </div>
+  <?php } ?>
+</div>
 <?php }	
 }

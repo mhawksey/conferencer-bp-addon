@@ -161,7 +161,7 @@ class Conferencer_Shortcode_Agenda_Custom_Print extends Conferencer_Shortcode {
 				);
 			}
 		
-			if ($show_unassigned_column && count($row_post_counts[0])) {
+			if ($show_unassigned_column && $row_post_counts[0]) {
 				// extra column header for sessions not assigned to a column
 				$row_headers[] = array(
 					'title' => $unassigned_row_header_text,
@@ -177,7 +177,8 @@ class Conferencer_Shortcode_Agenda_Custom_Print extends Conferencer_Shortcode {
 		}
 	
 		// Remove unscheduled time slot, if without sessions
-		if (deep_empty($agenda[0])) unset($agenda[0]);
+		if (!$show_unassigned_column) unset($agenda[0]);
+		//print_r($agenda);
 
 		// Start buffering output
 
@@ -291,7 +292,8 @@ text-align:center;
       <?php  
 								$tab_lkup[get_day($tab_header)] = "day".$tab_idx;?>
       <li>
-        <?php if ($tabs == 'days' && $tab_header) { ?>
+        <?php //if ($tabs == 'days' && $tab_header) {
+			if ($tabs == 'days') { ?>
         <a href="#day<?php echo $tab_idx; ?>"> <?php echo $tab_header ? date($tab_day_format, $tab_header) : $unscheduled_row_text; ?> </a>
         <?php $tab_idx++; ?>
         <?php } ?>
@@ -305,17 +307,23 @@ text-align:center;
         <?php } ?>
         <?php $row_starts = $last_row_starts = $second_table = false; ?>
         <?php foreach ($agenda as $time_slot_id => $cells) { ?>
+		<?php print_r("<!-- ".$time_slot_id. ' -->'); ?>
         <?php
 							// Set up row information
-					
-							$last_row_starts = $row_starts;
-							$row_starts = get_post_meta($time_slot_id, '_conferencer_starts', true);
-							$row_ends = get_post_meta($time_slot_id, '_conferencer_ends', true);
-							$non_session = get_post_meta($time_slot_id, '_conferencer_non_session', true);
-							$no_sessions = deep_empty($cells);
-						
-							// Show day seperators
-							$show_next_day = $row_day_format !== false && date('w', $row_starts) != date('w', $last_row_starts);
+							if ($time_slot_id) {
+								$last_row_starts = $row_starts;
+								$row_starts = get_post_meta($time_slot_id, '_conferencer_starts', true);
+								$row_ends = get_post_meta($time_slot_id, '_conferencer_ends', true);
+								$non_session = get_post_meta($time_slot_id, '_conferencer_non_session', true);
+								$no_sessions = deep_empty($cells);
+								$table_id = $tab_lkup[get_day($row_starts)];
+							
+								// Show day seperators
+								$show_next_day = $row_day_format !== false && date('w', $row_starts) != date('w', $last_row_starts);
+							} elseif($show_unassigned_column) {
+								$show_next_day = true;
+								$table_id = "day".($tab_idx-1);
+							}
 						
 							if ($show_next_day) { ?>
         <?php if ($tabs) { ?>
@@ -324,8 +332,9 @@ text-align:center;
     </table>
     <!-- #conferencer_agenda_tab_xxx --> </div>
   <?php } else $second_table = true; ?>
-  <div id="<?php echo $tab_lkup[get_day($row_starts)]; ?>">
+  <div id="<?php echo $table_id; ?>">
   <div id="scroller-anchor"></div>
+  <?php //print_r($cells); ?>
     <table class="grid">
       <?php if ($column_type) $this->display_headers($column_headers); ?>
       <tbody>
@@ -396,8 +405,8 @@ text-align:center;
                 <td width="40" class="<?php echo $row_header['class']; ?>"><div  class="vert room"><?php
                                 $html = $row_header['title'];
                                 if ($row_header['link']) $html = "<a href='".$row_header['link']."'>$html</a>";
-                                echo $html;
-								echo "<div class='chair'>".str_replace(" ", "&nbsp;", get_the_title($do_rows[0]->chair))."</div>";
+								echo $html;
+								if ($do_rows[0]->chair) echo "<div class='chair'>".str_replace(" ", "&nbsp;", get_the_title($do_rows[0]->chair))."</div>";
                             ?></div>
                 </td>
                 <td class="sessions">
@@ -491,6 +500,7 @@ text-align:center;
 <a name="sessionid<?php echo $group_id ;?>"></a>
 <div class="session <?php if ($session->track) echo " track-".Conferencer_BP_Addon::get_the_slug($session->track); 
 						  if ($session->type) echo " type-".Conferencer_BP_Addon::get_the_slug($session->type);?>" group-id="<?php echo $group_id ;?>">
+  <?php if ( has_post_thumbnail($session->ID) ) echo get_the_post_thumbnail( $session->ID, 'full', array( 'class' => 'alignleft','style' =>'margin:5px;' ) ); ?>				  
   <div class="generic-button group-button prog public" id="groupbutton-<?php echo $group_id ;?>" style="display:none"></div>
     <?php 
 		/*$webinar_link = get_post_meta($session->ID, 'con_webinar_link', true);
@@ -499,7 +509,6 @@ text-align:center;
 		}*/
 	?>
   <?php if (get_post_meta($session->ID, 'con_live', true)) echo '<a href="'.esc_url( get_permalink($session->ID)).'"><i class="fa fa-youtube-square" aria-hidden="true"></i></a>'; ?>
-  <?php if (get_post_meta($session->ID, 'con_bb', true)) echo '<a href="'.esc_url( get_permalink($session->ID)).'"><img class="ultra" src="'.plugins_url( 'images/icons/ultra-16px.png' , dirname(__FILE__) ).'" alt="Webinar"/></a>'; ?>
   <?php echo do_shortcode("
 				[session_meta
 					post_id='$session->ID' 
